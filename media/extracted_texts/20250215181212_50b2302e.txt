@@ -1,0 +1,7 @@
+WEBP
+PNG
+JPG
+Raw Text
+PDF
+T DOCX
+stxt W

@@ -1,0 +1,15 @@
+Hello  want to make a macro for my
+bluestacks 5,
+I have a couple of servers that i want to
+run multiple instances of bluestacks on, Im
+trying to a script made that would open
+the spotify app; log in from a list of accounts
+that i have, add a playlist that i specify and
+stream from the playlist, whilst also randomly
+throughout a long playtime liking only some
+songs, and skipping some of the music, or
+skipping 15- 30 seconds f a song:
+Can this script have no resolution
+requirements (like that it doesnt matter what
+size the screen resolution is)
+get

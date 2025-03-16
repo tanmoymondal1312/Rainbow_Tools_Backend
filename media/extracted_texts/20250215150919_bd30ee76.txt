@@ -1,0 +1,11 @@
+Wellex
+SYS mmHg Sen se Comfort
+kPa
+DIA
+mmHg
+mmHg
+PUL Imin
+As-35K
+ON SET
+MEM
+OFF
