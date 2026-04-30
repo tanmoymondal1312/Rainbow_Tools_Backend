@@ -9,7 +9,7 @@ from django.http import JsonResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageOps
 from rembg import remove
 import easyocr
 import numpy as np
@@ -102,9 +102,9 @@ async def remove_background(request):
     loop = asyncio.get_running_loop()
 
     def _read_and_remove(img_file):
-        pil = Image.open(img_file)
+        pil = ImageOps.exif_transpose(Image.open(img_file))  # bake in EXIF rotation
         buf = io.BytesIO()
-        pil.save(buf, format=pil.format or 'PNG')
+        pil.save(buf, format='PNG')
         return _bg_remove_one(buf.getvalue())
 
     try:
@@ -122,7 +122,7 @@ async def remove_background(request):
 
 def _enhance_one(img_file) -> str:
     """CPU-bound: enhance → resize → progressive JPEG (3-5× smaller than PNG)."""
-    img = Image.open(img_file)
+    img = ImageOps.exif_transpose(Image.open(img_file))  # bake in EXIF rotation
     img = ImageEnhance.Sharpness(img).enhance(2.0)
     img = ImageEnhance.Color(img).enhance(1.5)
     img = ImageEnhance.Brightness(img).enhance(1.2)
