@@ -6,4 +6,5 @@ urlpatterns = [
     path('connection-status/', views.connection_status, name='connection_status'),
     path('admin/', admin.site.urls),
     path('image-optimization/', include('ImageOptimization.urls')),
+    path('pdf-tools/',          include('PDFTools.urls')),
 ]
