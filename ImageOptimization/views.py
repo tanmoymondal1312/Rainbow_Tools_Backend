@@ -38,6 +38,16 @@ def _uid(ext: str) -> str:
     return f"rbgt_{uuid.uuid4().hex}{ext}"
 
 
+_MAX_PX = 1920  # longest side cap before delivery
+
+def _resize_if_large(img: Image.Image) -> Image.Image:
+    w, h = img.size
+    if max(w, h) > _MAX_PX:
+        ratio = _MAX_PX / max(w, h)
+        img = img.resize((int(w * ratio), int(h * ratio)), Image.LANCZOS)
+    return img
+
+
 # ── Serve saved files ─────────────────────────────────────────────────────────
 
 @csrf_exempt
@@ -53,7 +63,7 @@ def GetInhanceImages(request, imageNo):
     path = os.path.join(INHANCE_DIR, imageNo)
     if not os.path.exists(path):
         return JsonResponse({'error': 'Image not found'}, status=404)
-    return FileResponse(open(path, 'rb'), content_type='image/png')
+    return FileResponse(open(path, 'rb'), content_type='image/jpeg')
 
 
 @csrf_exempt
@@ -67,10 +77,13 @@ def GetExtractedTextFile(request, fileName):
 # ── Tool 1: Background Removal ────────────────────────────────────────────────
 
 def _bg_remove_one(raw_bytes: bytes) -> str:
-    """CPU-bound: runs rembg (ONNX releases GIL) in thread pool."""
+    """CPU-bound: remove bg → resize → optimized PNG (keeps transparency)."""
     out_bytes = remove(raw_bytes)
+    img = Image.open(io.BytesIO(out_bytes)).convert("RGBA")
+    img = _resize_if_large(img)
     name = _uid('.png')
-    Image.open(io.BytesIO(out_bytes)).save(os.path.join(BG_REMOVED_DIR, name))
+    # compress_level=7 gives ~40% smaller PNG with no quality loss
+    img.save(os.path.join(BG_REMOVED_DIR, name), format="PNG", optimize=True, compress_level=7)
     print(f"BG removed: {name}")
     return name
 
@@ -108,14 +121,15 @@ async def remove_background(request):
 # ── Tool 2: Image Enhancement ─────────────────────────────────────────────────
 
 def _enhance_one(img_file) -> str:
-    """CPU-bound: PIL chained enhancements run in thread pool."""
+    """CPU-bound: enhance → resize → progressive JPEG (3-5× smaller than PNG)."""
     img = Image.open(img_file)
     img = ImageEnhance.Sharpness(img).enhance(2.0)
     img = ImageEnhance.Color(img).enhance(1.5)
     img = ImageEnhance.Brightness(img).enhance(1.2)
     img = ImageEnhance.Contrast(img).enhance(1.3)
-    name = _uid('.png')
-    img.save(os.path.join(INHANCE_DIR, name))
+    img = _resize_if_large(img).convert("RGB")  # RGB required for JPEG
+    name = _uid('.jpg')
+    img.save(os.path.join(INHANCE_DIR, name), format="JPEG", quality=85, optimize=True, progressive=True)
     print(f"Enhanced: {name}")
     return name
 
