@@ -1,13 +1,13 @@
 import io
 import os
-import uuid
+import base64
 import asyncio
 import subprocess
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
-from django.http import JsonResponse, FileResponse
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
 
 from PIL import Image, ImageEnhance, ImageOps
 from rembg import remove
@@ -15,30 +15,12 @@ import easyocr
 import numpy as np
 
 
-# ── Output directories ────────────────────────────────────────────────────────
-BG_REMOVED_DIR    = os.path.join(settings.MEDIA_ROOT, 'bg_removed_images')
-INHANCE_DIR       = os.path.join(settings.MEDIA_ROOT, 'inhance_images')
-EXTRACT_TEXTS_DIR = os.path.join(settings.MEDIA_ROOT, 'extracted_texts')
-UPLOAD_DIR        = os.path.join(settings.MEDIA_ROOT, 'uploads')
-REDUCED_DIR       = os.path.join(settings.MEDIA_ROOT, 'reduced_images')
-
-for _d in (BG_REMOVED_DIR, INHANCE_DIR, EXTRACT_TEXTS_DIR, UPLOAD_DIR, REDUCED_DIR):
-    os.makedirs(_d, exist_ok=True)
-
-
 # ── Shared resources ──────────────────────────────────────────────────────────
-# max_workers=4 keeps CPU-bound ONNX/PIL tasks from thrashing the machine
 _pool = ThreadPoolExecutor(max_workers=4)
+_ocr  = easyocr.Reader(['en'], gpu=False)
 
-# EasyOCR reader is expensive to build; initialise once at startup
-_ocr = easyocr.Reader(['en'], gpu=False)
+_MAX_PX = 1920
 
-
-def _uid(ext: str) -> str:
-    return f"rbgt_{uuid.uuid4().hex}{ext}"
-
-
-_MAX_PX = 1920  # longest side cap before delivery
 
 def _resize_if_large(img: Image.Image) -> Image.Image:
     w, h = img.size
@@ -48,44 +30,25 @@ def _resize_if_large(img: Image.Image) -> Image.Image:
     return img
 
 
-# ── Serve saved files ─────────────────────────────────────────────────────────
-
-@csrf_exempt
-def GetBgRemovedImages(request, imageNo):
-    path = os.path.join(BG_REMOVED_DIR, imageNo)
-    if not os.path.exists(path):
-        return JsonResponse({'error': 'Image not found'}, status=404)
-    return FileResponse(open(path, 'rb'), content_type='image/png')
-
-
-@csrf_exempt
-def GetInhanceImages(request, imageNo):
-    path = os.path.join(INHANCE_DIR, imageNo)
-    if not os.path.exists(path):
-        return JsonResponse({'error': 'Image not found'}, status=404)
-    return FileResponse(open(path, 'rb'), content_type='image/jpeg')
-
-
-@csrf_exempt
-def GetExtractedTextFile(request, fileName):
-    path = os.path.join(EXTRACT_TEXTS_DIR, fileName)
-    if not os.path.exists(path):
-        return JsonResponse({'error': 'File not found'}, status=404)
-    return FileResponse(open(path, 'rb'), content_type='text/plain')
+def _b64(buf: io.BytesIO) -> str:
+    return base64.b64encode(buf.getvalue()).decode('utf-8')
 
 
 # ── Tool 1: Background Removal ────────────────────────────────────────────────
 
-def _bg_remove_one(raw_bytes: bytes) -> str:
-    """CPU-bound: remove bg → resize → optimized PNG (keeps transparency)."""
-    out_bytes = remove(raw_bytes)
-    img = Image.open(io.BytesIO(out_bytes)).convert("RGBA")
+def _process_bg_remove(img_file) -> str:
+    """Full pipeline in memory → base64 PNG string. Nothing saved to disk."""
+    pil = ImageOps.exif_transpose(Image.open(img_file))
+    raw = io.BytesIO()
+    pil.save(raw, format='PNG')
+
+    out = remove(raw.getvalue())
+    img = Image.open(io.BytesIO(out)).convert("RGBA")
     img = _resize_if_large(img)
-    name = _uid('.png')
-    # compress_level=7 gives ~40% smaller PNG with no quality loss
-    img.save(os.path.join(BG_REMOVED_DIR, name), format="PNG", optimize=True, compress_level=7)
-    print(f"BG removed: {name}")
-    return name
+
+    result = io.BytesIO()
+    img.save(result, format="PNG", optimize=True, compress_level=7)
+    return _b64(result)
 
 
 @csrf_exempt
@@ -100,19 +63,11 @@ async def remove_background(request):
         return JsonResponse({'error': 'Cannot upload more than 5 images'}, status=400)
 
     loop = asyncio.get_running_loop()
-
-    def _read_and_remove(img_file):
-        pil = ImageOps.exif_transpose(Image.open(img_file))  # bake in EXIF rotation
-        buf = io.BytesIO()
-        pil.save(buf, format='PNG')
-        return _bg_remove_one(buf.getvalue())
-
     try:
-        # All images processed concurrently in the thread pool
-        names = await asyncio.gather(
-            *[loop.run_in_executor(_pool, _read_and_remove, f) for f in files]
+        images = await asyncio.gather(
+            *[loop.run_in_executor(_pool, _process_bg_remove, f) for f in files]
         )
-        return JsonResponse({'image_names': list(names)}, status=200)
+        return JsonResponse({'images': list(images)}, status=200)
     except Exception as e:
         print(f"remove_background error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
@@ -120,18 +75,18 @@ async def remove_background(request):
 
 # ── Tool 2: Image Enhancement ─────────────────────────────────────────────────
 
-def _enhance_one(img_file) -> str:
-    """CPU-bound: enhance → resize → progressive JPEG (3-5× smaller than PNG)."""
-    img = ImageOps.exif_transpose(Image.open(img_file))  # bake in EXIF rotation
+def _process_enhance(img_file) -> str:
+    """Full pipeline in memory → base64 JPEG string. Nothing saved to disk."""
+    img = ImageOps.exif_transpose(Image.open(img_file))
     img = ImageEnhance.Sharpness(img).enhance(2.0)
     img = ImageEnhance.Color(img).enhance(1.5)
     img = ImageEnhance.Brightness(img).enhance(1.2)
     img = ImageEnhance.Contrast(img).enhance(1.3)
-    img = _resize_if_large(img).convert("RGB")  # RGB required for JPEG
-    name = _uid('.jpg')
-    img.save(os.path.join(INHANCE_DIR, name), format="JPEG", quality=85, optimize=True, progressive=True)
-    print(f"Enhanced: {name}")
-    return name
+    img = _resize_if_large(img).convert("RGB")
+
+    result = io.BytesIO()
+    img.save(result, format="JPEG", quality=85, optimize=True, progressive=True)
+    return _b64(result)
 
 
 @csrf_exempt
@@ -147,10 +102,10 @@ async def InhanceImages(request):
 
     loop = asyncio.get_running_loop()
     try:
-        names = await asyncio.gather(
-            *[loop.run_in_executor(_pool, _enhance_one, f) for f in files]
+        images = await asyncio.gather(
+            *[loop.run_in_executor(_pool, _process_enhance, f) for f in files]
         )
-        return JsonResponse({'image_names': list(names)}, status=200)
+        return JsonResponse({'images': list(images)}, status=200)
     except Exception as e:
         print(f"InhanceImages error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
@@ -178,95 +133,81 @@ def _group_lines(results, threshold):
     return lines
 
 
-def _ocr_and_save(image_bytes: bytes) -> str:
-    """CPU-bound: OCR + file write runs in thread pool."""
+def _ocr_extract(image_bytes: bytes) -> str:
+    """OCR in memory → plain text string. Nothing saved to disk."""
     results = _ocr.readtext(image_bytes)
     threshold = _y_threshold(results)
     lines = _group_lines(results, threshold)
-    text = "\n".join(
+    return "\n".join(
         " ".join(t for _, t in sorted(line, key=lambda x: x[0][0][0]))
         for line in lines
     )
-    name = f"rbgt_{uuid.uuid4().hex}.txt"
-    with open(os.path.join(EXTRACT_TEXTS_DIR, name), "w", encoding="utf-8") as fh:
-        fh.write(text)
-    return name
 
 
 @csrf_exempt
 async def ExtractTextsFromImages(request):
-    print("Image Get")
     if request.method != 'POST' or not request.FILES.getlist('images'):
         return JsonResponse({'status': 'error', 'message': 'No images uploaded'}, status=400)
 
     loop = asyncio.get_running_loop()
-    names = await asyncio.gather(
-        *[loop.run_in_executor(_pool, _ocr_and_save, img.read())
+    texts = await asyncio.gather(
+        *[loop.run_in_executor(_pool, _ocr_extract, img.read())
           for img in request.FILES.getlist('images')]
     )
-    return JsonResponse({'image_names': list(names)}, status=200)
+    return JsonResponse({'texts': list(texts)}, status=200)
 
 
 # ── Tool 4: Image Size Reduction ──────────────────────────────────────────────
 
-def _compress_png(inp: str, out: str, target_kb: int) -> bool:
+def _compress_png_to_b64(raw_png: bytes, target_kb: int) -> str:
+    """pngquant needs real files; write → compress → read → delete."""
+    inp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+    out_path = inp.name + '_out.png'
     try:
+        inp.write(raw_png)
+        inp.close()
         subprocess.run(
-            ["pngquant", "--force", "--quality=60-80", "--output", out, inp],
+            ["pngquant", "--force", "--quality=60-80", "--output", out_path, inp.name],
             check=True
         )
-        return os.path.exists(out) and os.path.getsize(out) <= target_kb * 1024
-    except FileNotFoundError:
-        Image.open(inp).convert("P").save(out, format="PNG", optimize=True)
-        return os.path.exists(out)
+        with open(out_path, 'rb') as f:
+            return base64.b64encode(f.read()).decode('utf-8')
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        # pngquant unavailable or failed — Pillow palette fallback
+        buf = io.BytesIO()
+        Image.open(io.BytesIO(raw_png)).convert("P").save(buf, format="PNG", optimize=True)
+        return _b64(buf)
+    finally:
+        if os.path.exists(inp.name):  os.unlink(inp.name)
+        if os.path.exists(out_path):  os.unlink(out_path)
 
 
-def _compress_image(inp: str, out: str, target_kb: int) -> str | None:
-    """Returns actual output path on success, None on failure."""
+def _compress_to_b64(img_file, target_kb: int) -> str:
+    """Compress in memory → base64 string. Temp files used only for PNG/pngquant."""
     target_bytes = target_kb * 1024
-    if not os.path.exists(inp):
-        return None
+    raw = img_file.read()
 
-    img = Image.open(inp)
-    fmt = img.format
-    ext = os.path.splitext(inp)[1].lower()
-
+    img = Image.open(io.BytesIO(raw))
+    fmt = img.format or 'JPEG'
     if fmt not in ("JPEG", "PNG", "WEBP"):
-        fmt, ext = "JPEG", ".jpg"
+        fmt = "JPEG"
 
-    out = os.path.splitext(out)[0] + ext
-
-    if os.path.getsize(inp) <= target_bytes:
-        img.save(out, format=fmt)
-        return out
+    # Already small enough — send as-is
+    if len(raw) <= target_bytes:
+        return base64.b64encode(raw).decode('utf-8')
 
     if fmt == "PNG":
-        return out if _compress_png(inp, out, target_kb) else None
+        return _compress_png_to_b64(raw, target_kb)
 
+    # JPEG / WEBP — pure in-memory quality reduction
     quality = 95
-    img.save(out, format=fmt, quality=quality, optimize=True)
-    while os.path.getsize(out) > target_bytes and quality > 10:
+    buf = io.BytesIO()
+    img.save(buf, format=fmt, quality=quality, optimize=True)
+    while buf.tell() > target_bytes and quality > 10:
         quality -= 5
-        img.save(out, format=fmt, quality=quality, optimize=True)
-
-    return out
-
-
-def _reduce_one(img_file, target_kb: int, base_url: str) -> dict:
-    """CPU-bound: save upload + compress + return result dict."""
-    name = img_file.name
-    inp = os.path.join(UPLOAD_DIR, name)
-    out = os.path.join(REDUCED_DIR, name)
-
-    with open(inp, "wb") as fh:
-        for chunk in img_file.chunks():
-            fh.write(chunk)
-
-    actual_out = _compress_image(inp, out, target_kb)
-    if actual_out:
-        served = os.path.basename(actual_out)
-        return {"image": name, "url": f"{base_url}{settings.MEDIA_URL}reduced_images/{served}"}
-    return {"image": name, "error": "Compression failed"}
+        buf = io.BytesIO()
+        img.save(buf, format=fmt, quality=quality, optimize=True)
+    return _b64(buf)
 
 
 @csrf_exempt
@@ -285,16 +226,13 @@ async def reduce_image_size_view(request):
     if len(images) != len(target_sizes):
         return JsonResponse({"error": "Number of images and target sizes must match"}, status=400)
 
-    # Build base URL in async context (not thread-safe inside the executor)
-    base_url = request.build_absolute_uri('/').rstrip('/')
     loop = asyncio.get_running_loop()
-
     try:
         results = await asyncio.gather(
-            *[loop.run_in_executor(_pool, _reduce_one, img, kb, base_url)
+            *[loop.run_in_executor(_pool, _compress_to_b64, img, kb)
               for img, kb in zip(images, target_sizes)]
         )
-        return JsonResponse({"reduced_images": list(results)})
+        return JsonResponse({"images": list(results)})
     except Exception as e:
         print(f"reduce_image_size_view error: {e}")
         return JsonResponse({"error": "Unexpected server error"}, status=500)
