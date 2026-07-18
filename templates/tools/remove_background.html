@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Remove Background — Rainbow Tools{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tool.css' %}">
+<style>:root { --tool-accent: {{ tool.color }}; }</style>
+{% endblock %}
+
+{% block content %}
+<section class="tool-page">
+    <div class="tool-page-header">
+        <a href="{% url 'home' %}" class="back-link">&larr; All tools</a>
+        <h1>Remove Background</h1>
+        <p>Drop up to 5 images and we'll cut out the background. Nothing is written to disk on the server.</p>
+    </div>
+
+    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload images">
+        <input type="file" id="file-input" accept="image/*" multiple hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4M12 4l-4 4M12 4l4 4"></path>
+            <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
+        </svg>
+        <p><strong>Click to upload</strong> or drag and drop</p>
+        <span class="dropzone-hint">PNG, JPG or WEBP — up to 5 images</span>
+    </div>
+
+    <ul class="file-list" id="file-list"></ul>
+
+    <div class="tool-actions">
+        <button type="button" class="btn-primary" id="submit-btn" disabled>Remove Background</button>
+    </div>
+
+    <div class="progress" id="progress" hidden>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <p class="progress-text" id="progress-text" aria-live="polite"></p>
+    </div>
+
+    <div class="results-grid" id="results-grid"></div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/tool-common.js' %}"></script>
+<script src="{% static 'js/remove-background.js' %}"></script>
+{% endblock %}

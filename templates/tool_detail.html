@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tool.name }} — Rainbow Tools{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <span class="tool-icon" style="font-size:3rem">{{ tool.icon }}</span>
+    <h1>{{ tool.name }}</h1>
+    <p>{{ tool.description }}</p>
+    <p><strong>Coming soon</strong> — this tool's page is on its way.</p>
+    <p><a href="{% url 'home' %}">&larr; Back to all tools</a></p>
+</section>
+{% endblock %}

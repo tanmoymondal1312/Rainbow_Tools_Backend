@@ -3,11 +3,21 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-rthdnmdx8j^b0uwd7$1mm3sai10ow=ekkqbum588k&1kvv^jzn'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-rthdnmdx8j^b0uwd7$1mm3sai10ow=ekkqbum588k&1kvv^jzn',
+)
 
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1','tanmoy-ubuntu-computer','tanmoy-ubuntu-computer.local']
+ALLOWED_HOSTS = os.environ.get(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1,tanmoy-ubuntu-computer,tanmoy-ubuntu-computer.local',
+).split(',')
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    CSRF_TRUSTED_ORIGINS = [f'https://{h}' for h in ALLOWED_HOSTS if h not in ('localhost', '127.0.0.1')]
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
@@ -41,7 +51,7 @@ ROOT_URLCONF = 'RAINBOW_TOOLS.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

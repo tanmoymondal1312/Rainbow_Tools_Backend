@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rainbow Tools — Image & PDF Tools{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <img src="{% static 'img/rainbowtoolicon.png' %}" alt="Rainbow Tools" class="hero-logo">
+    <h1>Rainbow Tools</h1>
+    <p>Fast, free image &amp; PDF tools — all in one place.</p>
+</section>
+
+<section class="tools-grid">
+    {% for tool in tools %}
+    <a href="{% url 'tool_detail' tool.slug %}" class="tool-card" style="--accent:{{ tool.color }}">
+        <span class="tool-icon">{{ tool.icon }}</span>
+        <h2>{{ tool.name }}</h2>
+        <p>{{ tool.description }}</p>
+    </a>
+    {% endfor %}
+</section>
+{% endblock %}
