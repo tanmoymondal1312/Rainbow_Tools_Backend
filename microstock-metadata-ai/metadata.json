@@ -1,0 +1,6 @@
+{
+  "name": "Microstock Metadata AI",
+  "description": "Professional AI-powered microstock metadata generator and optimization platform for Adobe Stock, Shutterstock, Vecteezy, and leading stock agencies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

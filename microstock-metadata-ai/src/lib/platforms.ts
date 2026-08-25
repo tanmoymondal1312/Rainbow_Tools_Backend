@@ -1,0 +1,153 @@
+import { PlatformConfig, PlatformId } from '../types';
+
+export const PLATFORMS: Record<PlatformId, PlatformConfig> = {
+  'adobe-stock': {
+    id: 'adobe-stock',
+    name: 'Adobe Stock',
+    shortName: 'Adobe',
+    maxKeywords: 49,
+    recommendedKeywords: 45,
+    maxTitleLength: 200,
+    requiresDescription: true,
+    firstKeywordsPriority: true,
+    supportSingleWordOnly: true,
+    badgeColor: 'border-purple-500 bg-purple-500/10 text-purple-300 shadow-purple-500/20',
+    description: 'Optimized for Adobe Stock ranking algorithm. First 10 keywords receive maximum algorithmic weight.',
+    notes: 'Prioritizes main subject in first 5 keywords, strictly under 50 keywords limit (49 max).'
+  },
+  'general': {
+    id: 'general',
+    name: 'General Stock',
+    shortName: 'General',
+    maxKeywords: 49,
+    recommendedKeywords: 40,
+    maxTitleLength: 200,
+    requiresDescription: true,
+    firstKeywordsPriority: false,
+    supportSingleWordOnly: false,
+    badgeColor: 'border-cyan-500 bg-cyan-500/10 text-cyan-300 shadow-cyan-500/20',
+    description: 'Universal microstock metadata structure compatible across all major stock image agencies.',
+    notes: 'Standard high-performing title, description, and broad keyword coverage.'
+  },
+  'magnific': {
+    id: 'magnific',
+    name: 'Magnific AI',
+    shortName: 'Magnific',
+    maxKeywords: 40,
+    recommendedKeywords: 35,
+    maxTitleLength: 220,
+    requiresDescription: true,
+    firstKeywordsPriority: true,
+    supportSingleWordOnly: false,
+    badgeColor: 'border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-300 shadow-fuchsia-500/20',
+    description: 'Focused on descriptive detail, texture fidelity, rendering engine styles and artistic taxonomy.',
+    notes: 'Emphasizes visual aesthetics, medium, rendering techniques, and mood tags.'
+  },
+  'shutterstock': {
+    id: 'shutterstock',
+    name: 'Shutterstock',
+    shortName: 'Shutterstock',
+    maxKeywords: 50,
+    recommendedKeywords: 45,
+    maxTitleLength: 200,
+    requiresDescription: true,
+    firstKeywordsPriority: false,
+    supportSingleWordOnly: true,
+    badgeColor: 'border-red-500 bg-red-500/10 text-red-300 shadow-red-500/20',
+    description: 'Strict Shutterstock compliance with commercial categorization and deduplicated tags.',
+    notes: 'Allows up to 50 keywords. Prefers clear subject-first titles without trademark terms.'
+  },
+  'vecteezy': {
+    id: 'vecteezy',
+    name: 'Vecteezy',
+    shortName: 'Vecteezy',
+    maxKeywords: 45,
+    recommendedKeywords: 35,
+    maxTitleLength: 180,
+    requiresDescription: false,
+    firstKeywordsPriority: true,
+    supportSingleWordOnly: true,
+    badgeColor: 'border-amber-500 bg-amber-500/10 text-amber-300 shadow-amber-500/20',
+    description: 'Specialized for vector graphics, icons, banners, and editable graphic resource templates.',
+    notes: 'Vector attributes (flat, outline, minimal, eps, editable) are given special weight.'
+  },
+  'depositphotos': {
+    id: 'depositphotos',
+    name: 'Depositphotos',
+    shortName: 'Deposit',
+    maxKeywords: 50,
+    recommendedKeywords: 40,
+    maxTitleLength: 200,
+    requiresDescription: true,
+    firstKeywordsPriority: false,
+    supportSingleWordOnly: true,
+    badgeColor: 'border-emerald-500 bg-emerald-500/10 text-emerald-300 shadow-emerald-500/20',
+    description: 'Balanced metadata formatting with strict anti-spam indexing rules.',
+    notes: 'Supports up to 50 keywords with comprehensive concept hierarchy.'
+  },
+  '123rf': {
+    id: '123rf',
+    name: '123RF',
+    shortName: '123RF',
+    maxKeywords: 50,
+    recommendedKeywords: 40,
+    maxTitleLength: 160,
+    requiresDescription: true,
+    firstKeywordsPriority: false,
+    supportSingleWordOnly: true,
+    badgeColor: 'border-blue-500 bg-blue-500/10 text-blue-300 shadow-blue-500/20',
+    description: 'Direct keyword extraction with concise commercial intent descriptions.',
+    notes: 'Standard 50 keyword ceiling with strict commercial use classification.'
+  },
+  'dreamstime': {
+    id: 'dreamstime',
+    name: 'Dreamstime',
+    shortName: 'Dreamstime',
+    maxKeywords: 50,
+    recommendedKeywords: 45,
+    maxTitleLength: 200,
+    requiresDescription: true,
+    firstKeywordsPriority: false,
+    supportSingleWordOnly: true,
+    badgeColor: 'border-indigo-500 bg-indigo-500/10 text-indigo-300 shadow-indigo-500/20',
+    description: 'Multi-tiered thematic categorizations and granular technical keyword trees.',
+    notes: 'Enforces minimum 10 keywords and comprehensive multi-tier categorization.'
+  }
+};
+
+export const MICROSTOCK_CATEGORIES = [
+  'Animals',
+  'Buildings and Architecture',
+  'Business',
+  'Drinks',
+  'Environment',
+  'States of Mind',
+  'Food',
+  'Graphic Resources',
+  'Hobbies and Leisure',
+  'Industry',
+  'Landscape',
+  'Lifestyle',
+  'People',
+  'Plants and Flowers',
+  'Culture and Religion',
+  'Science',
+  'Social Issues',
+  'Sports',
+  'Technology',
+  'Transport',
+  'Travel'
+] as const;
+
+export const CONTENT_TYPES = [
+  'Vector',
+  'Illustration',
+  'Photo',
+  'Graphic',
+  'Icon',
+  'Pattern',
+  'Background',
+  'Typography',
+  'Template',
+  'Other'
+] as const;
