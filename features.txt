@@ -1,0 +1,191 @@
+==========================================
+   RAINBOW TOOLS - Features Overview
+==========================================
+
+Welcome to Rainbow Tools!
+A collection of free, fast, and easy-to-use online tools
+for images, PDFs, and AI-powered metadata generation.
+
+All tools work directly in your browser.
+No sign-up required. No files stored on servers.
+
+
+==========================================
+  IMAGE TOOLS
+==========================================
+
+1. Remove Background
+   ------------------
+   - Upload any image (JPG, PNG, WEBP)
+   - Automatically removes the background
+   - Download the result as a transparent PNG
+   - Works with people, objects, products, animals
+   - Up to 5 images at once
+   - Processing happens server-side for best results
+
+2. Enhance Images
+   ----------------
+   - Upload images that look dull or blurry
+   - Automatically sharpens, brightens, and boosts color
+   - Improves contrast and overall visual quality
+   - Downloads as high-quality JPEG
+   - Up to 5 images at once
+
+3. Extract Text (OCR)
+   --------------------
+   - Upload any image that contains text
+   - Reads and extracts all visible text from the image
+   - Works with printed text, documents, signs, screenshots
+   - Results displayed in a readable text format
+   - Easy to copy extracted text
+   - Up to 5 images at once
+
+4. Reduce Image Size
+   -------------------
+   - Upload images that are too large
+   - Set a target file size in KB
+   - Compresses images to match your target
+   - Maintains good visual quality
+   - Perfect for email, web, or social media
+   - Supports JPG, PNG, and WEBP formats
+
+
+==========================================
+  PDF TOOLS
+==========================================
+
+5. PDF to DOCX
+   -------------
+   - Upload a PDF document
+   - Converts it to an editable Word file (.docx)
+   - Preserves text, tables, images, and layout
+   - Works with multi-page documents
+   - Download the editable Word file
+
+6. Optimize PDF
+   --------------
+   - Upload a large PDF file
+   - Reduces file size without losing quality
+   - Removes unnecessary data and redundant objects
+   - Great for email attachments or web uploads
+   - Shows how much space was saved
+
+
+==========================================
+  AI TOOLS
+==========================================
+
+7. Microstock Metadata AI
+   ------------------------
+   - The most powerful tool in the collection
+   - Uses artificial intelligence to analyze your artwork
+   - Generates professional metadata for stock photography
+
+   What it does:
+   - Upload any image, vector, or EPS file
+   - AI reads and understands what is in the image
+   - Automatically generates:
+     * SEO-optimized title
+     * Detailed description
+     * Relevant keywords (up to 50)
+     * Category classification
+
+   Platform Support:
+   - Adobe Stock
+   - Shutterstock
+   - Vecteezy
+   - Depositphotos
+   - 123RF
+   - Dreamstime
+   - Magnific AI
+   - General Stock (universal format)
+
+   How it works:
+   - Drag and drop your artwork
+   - Select your target platform
+   - Click generate
+   - Get instant metadata ready to copy-paste
+
+   Key Features:
+   - Switch between platforms without re-analyzing
+   - Edit title, description, and keywords directly
+   - Reorder keywords by importance (drag and drop)
+   - Add or remove individual keywords
+   - Quality scoring shows how good your metadata is
+   - Export all metadata as CSV or JSON file
+   - Batch processing for multiple files at once
+
+   Image to Prompt Mode:
+   - Upload any artwork or image
+   - AI reverse-engineers it into a text prompt
+   - Get prompts for Midjourney, Stable Diffusion, DALL-E
+   - Includes positive prompt, negative prompt, and parameters
+   - Perfect for recreating similar styles with AI
+
+   Supported File Types:
+   - JPG, JPEG, PNG, WEBP (standard images)
+   - EPS (vector files - rendered server-side)
+   - SVG (scalable vector graphics)
+   - AI (Adobe Illustrator files)
+
+   Quick Demo:
+   - 4 built-in sample artworks to try instantly
+   - No file upload needed for testing
+   - Includes botanical, tech, business, and food themes
+
+
+==========================================
+  GENERAL FEATURES
+==========================================
+
+- All tools are completely free
+- No account or sign-up required
+- No files are saved or stored
+- Works on desktop and mobile browsers
+- Dark mode support (follows your system settings)
+- Fast processing with real-time progress indicators
+- Drag and drop file upload on all tools
+- Download results with one click
+- Copy text results easily
+- Clean and simple interface
+
+
+==========================================
+  WHO IS THIS FOR?
+==========================================
+
+- Graphic designers preparing assets
+- Stock photographers selling on platforms
+- Content creators needing quick image edits
+- Small business owners managing documents
+- Students extracting text from images
+- Anyone needing fast, free image and PDF tools
+- AI artists looking for prompt inspiration
+
+
+==========================================
+  HOW TO USE
+==========================================
+
+1. Go to the homepage
+2. Click on any tool card
+3. Upload your file (or drag and drop)
+4. Click the action button
+5. Download or copy your result
+
+That's it. Simple and fast.
+
+
+==========================================
+  NOTES
+==========================================
+
+- Maximum upload size: 100 MB per file
+- Image processing happens in memory (nothing saved to disk)
+- AI tools require an internet connection
+- EPS rendering requires server-side software (Ghostscript)
+- Results are returned instantly for most tools
+- AI analysis may take a few seconds depending on complexity
+- All tools work best with modern browsers (Chrome, Firefox, Edge)
+
+==========================================
