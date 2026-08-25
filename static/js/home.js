@@ -9,12 +9,9 @@
 
     // ── Navbar scroll effect ──
     var navbar = document.getElementById('navbar');
-    var lastScroll = 0;
     function onScroll() {
-        var y = window.scrollY;
-        if (y > 20) navbar.classList.add('scrolled');
+        if (window.scrollY > 20) navbar.classList.add('scrolled');
         else navbar.classList.remove('scrolled');
-        lastScroll = y;
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -27,8 +24,8 @@
             toggle.classList.toggle('active');
             mobileMenu.classList.toggle('open');
         });
-        mobileMenu.querySelectorAll('a').forEach(function (link) {
-            link.addEventListener('click', function () {
+        mobileMenu.querySelectorAll('a, button').forEach(function (el) {
+            el.addEventListener('click', function () {
                 toggle.classList.remove('active');
                 mobileMenu.classList.remove('open');
             });
@@ -47,6 +44,62 @@
                 var top = target.getBoundingClientRect().top + window.scrollY - offset;
                 window.scrollTo({ top: top, behavior: prefersReduced ? 'auto' : 'smooth' });
             }
+        });
+    });
+
+    // ── Tool search ──
+    var searchInput = document.getElementById('tool-search');
+    var toolCards = document.querySelectorAll('.tool-card');
+    var toolCategories = document.querySelectorAll('.tool-category');
+    var emptyState = document.getElementById('tool-empty');
+
+    function filterTools() {
+        var query = (searchInput.value || '').toLowerCase().trim();
+        var activeFilter = document.querySelector('.filter-btn.active');
+        var category = activeFilter ? activeFilter.getAttribute('data-filter') : 'all';
+        var visibleCount = 0;
+
+        toolCards.forEach(function (card) {
+            var name = (card.getAttribute('data-name') || '').toLowerCase();
+            var cardCat = (card.getAttribute('data-category') || '').toLowerCase();
+            var desc = (card.querySelector('p') || {}).textContent || '';
+            desc = desc.toLowerCase();
+
+            var matchesSearch = !query || name.indexOf(query) !== -1 || desc.indexOf(query) !== -1;
+            var matchesCategory = category === 'all' || cardCat === category;
+
+            if (matchesSearch && matchesCategory) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Show/hide category headings
+        toolCategories.forEach(function (cat) {
+            var catType = cat.getAttribute('data-category');
+            var hasVisible = cat.querySelectorAll('.tool-card:not([style*="display: none"])').length > 0;
+            var matchesCat = category === 'all' || catType === category;
+            cat.style.display = hasVisible && matchesCat ? '' : 'none';
+        });
+
+        if (emptyState) {
+            emptyState.style.display = visibleCount === 0 ? '' : 'none';
+        }
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filterTools);
+    }
+
+    // ── Category filter buttons ──
+    var filterBtns = document.querySelectorAll('.filter-btn');
+    filterBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            filterBtns.forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            filterTools();
         });
     });
 
@@ -71,36 +124,13 @@
         });
     }
 
-    // ── Typing effect for preview ──
-    var typingEl = document.querySelector('.preview-value.typing');
-    if (typingEl && !prefersReduced) {
-        var fullText = typingEl.getAttribute('data-text') || '';
-        var idx = 0;
-        function typeChar() {
-            if (idx <= fullText.length) {
-                typingEl.textContent = fullText.substring(0, idx);
-                idx++;
-                setTimeout(typeChar, 40 + Math.random() * 30);
-            }
-        }
-        var typeObserver = new IntersectionObserver(function (entries) {
-            if (entries[0].isIntersecting) {
-                setTimeout(typeChar, 600);
-                typeObserver.disconnect();
-            }
-        }, { threshold: 0.5 });
-        typeObserver.observe(typingEl);
-    }
-
     // ── Card hover spotlight ──
     if (!prefersReduced) {
-        document.querySelectorAll('.tool-card, .feature-item, .why-item, .usecase-card').forEach(function (card) {
+        document.querySelectorAll('.tool-card, .why-item').forEach(function (card) {
             card.addEventListener('mousemove', function (e) {
                 var rect = card.getBoundingClientRect();
-                var x = e.clientX - rect.left;
-                var y = e.clientY - rect.top;
-                card.style.setProperty('--mx', x + 'px');
-                card.style.setProperty('--my', y + 'px');
+                card.style.setProperty('--mx', (e.clientX - rect.left) + 'px');
+                card.style.setProperty('--my', (e.clientY - rect.top) + 'px');
             });
         });
     }
