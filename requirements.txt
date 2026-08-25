@@ -75,3 +75,4 @@ tzdata==2024.2
 urllib3==2.2.3
 zope.interface==7.2
 google-genai==2.19.0
+firebase-admin==6.6.0
