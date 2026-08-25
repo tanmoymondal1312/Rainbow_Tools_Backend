@@ -5,25 +5,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rainbow Tools{% endblock %}</title>
+    <meta name="description" content="Free online tools for images, PDFs, OCR, and AI-powered metadata generation.">
     <link rel="icon" type="image/png" href="{% static 'img/rainbowtoolicon.png' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <header class="site-header">
-        <a href="{% url 'home' %}" class="brand">
-            <img src="{% static 'img/rainbowtoolicon.png' %}" alt="Rainbow Tools" class="brand-logo">
-            <span class="brand-name">Rainbow Tools</span>
-        </a>
-    </header>
+    <nav class="navbar" id="navbar">
+        <div class="navbar-inner">
+            <a href="{% url 'home' %}" class="navbar-brand">
+                <img src="{% static 'img/rainbowtoolicon.png' %}" alt="" class="navbar-logo">
+                <span class="navbar-name">Rainbow Tools</span>
+            </a>
+
+            <div class="navbar-links" id="nav-links">
+                <a href="#tools" class="nav-link">Tools</a>
+                <a href="#ai-tool" class="nav-link">AI Tools</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+            </div>
+
+            <div class="navbar-actions">
+                <a href="#tools" class="btn btn-sm btn-ghost">Explore Tools</a>
+                <a href="{% url 'tool_detail' 'microstock-metadata' %}" class="btn btn-sm btn-primary">Try AI Metadata</a>
+            </div>
+
+            <button class="navbar-toggle" id="nav-toggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+
+        <div class="navbar-mobile" id="nav-mobile">
+            <a href="#tools" class="mobile-link">Tools</a>
+            <a href="#ai-tool" class="mobile-link">AI Tools</a>
+            <a href="#how-it-works" class="mobile-link">How It Works</a>
+            <div class="mobile-actions">
+                <a href="{% url 'tool_detail' 'microstock-metadata' %}" class="btn btn-primary btn-block">Try AI Metadata</a>
+            </div>
+        </div>
+    </nav>
 
     <main>
         {% block content %}{% endblock %}
     </main>
 
     <footer class="site-footer">
-        <p>&copy; {% now "Y" %} Rainbow Tools. All rights reserved.</p>
+        <div class="footer-inner">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <a href="{% url 'home' %}" class="footer-logo-link">
+                        <img src="{% static 'img/rainbowtoolicon.png' %}" alt="" class="footer-logo">
+                        <span class="footer-brand-name">Rainbow Tools</span>
+                    </a>
+                    <p class="footer-tagline">Free, fast browser-based tools for images, PDFs, and AI-powered workflows.</p>
+                </div>
+                <div class="footer-links-group">
+                    <div class="footer-col">
+                        <h4>Image Tools</h4>
+                        <a href="{% url 'tool_detail' 'remove-background' %}">Remove Background</a>
+                        <a href="{% url 'tool_detail' 'enhance-images' %}">Enhance Images</a>
+                        <a href="{% url 'tool_detail' 'extract-text' %}">Extract Text (OCR)</a>
+                        <a href="{% url 'tool_detail' 'reduce-image-size' %}">Reduce Image Size</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>PDF Tools</h4>
+                        <a href="{% url 'tool_detail' 'pdf-to-docx' %}">PDF to DOCX</a>
+                        <a href="{% url 'tool_detail' 'optimize-pdf' %}">Optimize PDF</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>AI Tools</h4>
+                        <a href="{% url 'tool_detail' 'microstock-metadata' %}">Microstock Metadata AI</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; {% now "Y" %} Rainbow Tools. All rights reserved.</p>
+            </div>
+        </div>
     </footer>
+
+    <script src="{% static 'js/home.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
