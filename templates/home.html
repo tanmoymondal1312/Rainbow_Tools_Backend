@@ -1,22 +1,426 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Rainbow Tools — Image & PDF Tools{% endblock %}
+{% block title %}Rainbow Tools — Free Image, PDF & AI Tools{% endblock %}
 
 {% block content %}
-<section class="hero">
-    <img src="{% static 'img/rainbowtoolicon.png' %}" alt="Rainbow Tools" class="hero-logo">
-    <h1>Rainbow Tools</h1>
-    <p>Fast, free image &amp; PDF tools — all in one place.</p>
+
+{# ── HERO ── #}
+<section class="hero" id="hero">
+    <div class="hero-bg">
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+        <div class="hero-orb hero-orb-3"></div>
+        <div class="hero-grid"></div>
+    </div>
+    <div class="hero-content" data-animate="fade-up">
+        <span class="hero-badge">FREE ONLINE TOOLS &bull; NO SIGN-UP REQUIRED</span>
+        <h1 class="hero-title">
+            Powerful tools for<br>
+            <span class="hero-gradient">every digital workflow</span>
+        </h1>
+        <p class="hero-sub">
+            Edit images, process PDFs, extract text, and generate AI-powered metadata — fast, simple, and completely free.
+        </p>
+        <div class="hero-cta">
+            <a href="#tools" class="btn btn-primary btn-lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                Explore Tools
+            </a>
+            <a href="{% url 'tool_detail' 'microstock-metadata' %}" class="btn btn-outline btn-lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                Try AI Metadata
+            </a>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="hero-stat-num">7</span>
+                <span class="hero-stat-label">Free Tools</span>
+            </div>
+            <div class="hero-stat-divider"></div>
+            <div class="hero-stat">
+                <span class="hero-stat-num">0</span>
+                <span class="hero-stat-label">Sign-ups</span>
+            </div>
+            <div class="hero-stat-divider"></div>
+            <div class="hero-stat">
+                <span class="hero-stat-num">100<small>MB</small></span>
+                <span class="hero-stat-label">Max Upload</span>
+            </div>
+        </div>
+    </div>
 </section>
 
-<section class="tools-grid">
-    {% for tool in tools %}
-    <a href="{% url 'tool_detail' tool.slug %}" class="tool-card" style="--accent:{{ tool.color }}">
-        <span class="tool-icon">{{ tool.icon }}</span>
-        <h2>{{ tool.name }}</h2>
-        <p>{{ tool.description }}</p>
-    </a>
-    {% endfor %}
+{# ── TOOLS ── #}
+<section class="section tools-section" id="tools">
+    <div class="container">
+        <div class="section-header" data-animate="fade-up">
+            <span class="section-tag">TOOLS</span>
+            <h2 class="section-title">Everything you need,<br><span class="gradient-text">in one place.</span></h2>
+            <p class="section-desc">Fast, simple tools designed to make everyday creative and document workflows easier.</p>
+        </div>
+
+        {# IMAGE TOOLS #}
+        <div class="tool-category" data-animate="fade-up">
+            <div class="category-header">
+                <div class="category-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                </div>
+                <h3>Image Tools</h3>
+            </div>
+            <div class="tools-grid">
+                {% for tool in image_tools %}
+                <a href="{% url 'tool_detail' tool.slug %}" class="tool-card" style="--accent:{{ tool.color }}" data-animate="fade-up">
+                    <div class="tool-card-icon">
+                        {% if tool.icon == 'bg-remove' %}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 11h.01"/><path d="M11 15h.01"/><path d="M16 16h.01"/><path d="m2 16 20 6-6-20A20 20 0 0 0 2 16"/><path d="M5.6 10.6 16 2l-5.4 8.6"/></svg>
+                        {% elif tool.icon == 'enhance' %}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                        {% elif tool.icon == 'ocr' %}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2h10"/><path d="M7 6h10"/><path d="M7 10h10"/><path d="M7 14h10"/><path d="M7 18h10"/><rect width="18" height="18" x="3" y="2" rx="2"/></svg>
+                        {% elif tool.icon == 'compress' %}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
+                        {% endif %}
+                    </div>
+                    <div class="tool-card-content">
+                        <h4>{{ tool.name }}</h4>
+                        <p>{{ tool.description }}</p>
+                    </div>
+                    <div class="tool-card-arrow">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# PDF TOOLS #}
+        <div class="tool-category" data-animate="fade-up">
+            <div class="category-header">
+                <div class="category-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                </div>
+                <h3>PDF Tools</h3>
+            </div>
+            <div class="tools-grid">
+                {% for tool in pdf_tools %}
+                <a href="{% url 'tool_detail' tool.slug %}" class="tool-card" style="--accent:{{ tool.color }}" data-animate="fade-up">
+                    <div class="tool-card-icon">
+                        {% if tool.icon == 'pdf-docx' %}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                        {% elif tool.icon == 'pdf-optimize' %}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m16 13-3.2 3.2"/><path d="m8 13 3.2 3.2"/></svg>
+                        {% endif %}
+                    </div>
+                    <div class="tool-card-content">
+                        <h4>{{ tool.name }}</h4>
+                        <p>{{ tool.description }}</p>
+                    </div>
+                    <div class="tool-card-arrow">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 </section>
+
+{# ── FEATURED AI TOOL ── #}
+<section class="section featured-section" id="ai-tool">
+    <div class="container">
+        <div class="featured-layout" data-animate="fade-up">
+            <div class="featured-text">
+                <span class="section-tag">AI-POWERED</span>
+                <h2 class="featured-title">Turn your artwork into<br><span class="gradient-text">ready-to-use stock metadata.</span></h2>
+                <p class="featured-desc">Upload any image and our AI analyzes it to generate SEO-optimized titles, descriptions, and keywords — tailored for 8 major stock platforms.</p>
+                <ul class="featured-list">
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        AI image analysis &amp; understanding
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        50+ ranked keywords per artwork
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        Platform-specific optimization
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        Image-to-prompt reverse engineering
+                    </li>
+                    <li>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        Batch processing &amp; CSV/JSON export
+                    </li>
+                </ul>
+                <a href="{% url 'tool_detail' 'microstock-metadata' %}" class="btn btn-primary btn-lg">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                    Try Microstock Metadata AI
+                </a>
+            </div>
+            <div class="featured-preview">
+                <div class="preview-card">
+                    <div class="preview-header">
+                        <div class="preview-dots"><span></span><span></span><span></span></div>
+                        <span class="preview-title-bar">AI Metadata Generator</span>
+                    </div>
+                    <div class="preview-body">
+                        <div class="preview-upload">
+                            <div class="preview-artwork">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                <span>Artwork Preview</span>
+                            </div>
+                        </div>
+                        <div class="preview-meta">
+                            <div class="preview-field">
+                                <label>Title</label>
+                                <div class="preview-value typing" data-text="Tropical Monstera Botanical Jungle Leaves Pattern"></div>
+                            </div>
+                            <div class="preview-field">
+                                <label>Keywords</label>
+                                <div class="preview-tags">
+                                    <span class="preview-tag">#1 monstera</span>
+                                    <span class="preview-tag">#2 tropical</span>
+                                    <span class="preview-tag">#3 botanical</span>
+                                    <span class="preview-tag">#4 jungle</span>
+                                    <span class="preview-tag">#5 leaves</span>
+                                </div>
+                            </div>
+                            <div class="preview-row">
+                                <div class="preview-field preview-field-sm">
+                                    <label>Platform</label>
+                                    <span class="preview-badge">Adobe Stock</span>
+                                </div>
+                                <div class="preview-field preview-field-sm">
+                                    <label>Quality</label>
+                                    <span class="preview-score">92%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ── AI FEATURE HIGHLIGHTS ── #}
+<section class="section features-section">
+    <div class="container">
+        <div class="features-grid" data-animate="fade-up">
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m6.41 6.41-2.83-2.83"/><path d="M2 12h4"/><path d="m6.41 17.59-2.83 2.83"/><path d="M12 18v4"/><path d="m17.59 17.59 2.83 2.83"/><path d="M18 12h4"/><path d="m17.59 6.41 2.83-2.83"/></svg>
+                </div>
+                <h4>50+ Keywords</h4>
+                <p>AI-generated, strictly ranked keywords for maximum discoverability.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
+                </div>
+                <h4>8 Platforms</h4>
+                <p>Optimized for Adobe Stock, Shutterstock, Vecteezy, and more.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                </div>
+                <h4>Image to Prompt</h4>
+                <p>Reverse-engineer artwork into AI generation prompts.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/></svg>
+                </div>
+                <h4>Batch Processing</h4>
+                <p>Process multiple files simultaneously with queue management.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                </div>
+                <h4>CSV &amp; JSON Export</h4>
+                <p>Export all metadata in your preferred format instantly.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </div>
+                <h4>Quality Scoring</h4>
+                <p>Visual accuracy, keyword relevance, and SEO potential scores.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ── HOW IT WORKS ── #}
+<section class="section steps-section" id="how-it-works">
+    <div class="container">
+        <div class="section-header" data-animate="fade-up">
+            <span class="section-tag">SIMPLE PROCESS</span>
+            <h2 class="section-title">How it works</h2>
+            <p class="section-desc">Three steps to get your results. No account needed.</p>
+        </div>
+        <div class="steps-grid" data-animate="fade-up">
+            <div class="step-card">
+                <div class="step-num">01</div>
+                <div class="step-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </div>
+                <h3>Choose a tool</h3>
+                <p>Browse our collection of image, PDF, and AI tools. Pick the one that fits your workflow.</p>
+            </div>
+            <div class="step-connector">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </div>
+            <div class="step-card">
+                <div class="step-num">02</div>
+                <div class="step-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                </div>
+                <h3>Upload your file</h3>
+                <p>Drag and drop or click to upload. We support JPG, PNG, WEBP, PDF, EPS, and SVG.</p>
+            </div>
+            <div class="step-connector">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </div>
+            <div class="step-card">
+                <div class="step-num">03</div>
+                <div class="step-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                </div>
+                <h3>Download or copy</h3>
+                <p>Get your processed file, extracted text, or generated metadata instantly.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ── WHY RAINBOW TOOLS ── #}
+<section class="section why-section">
+    <div class="container">
+        <div class="section-header" data-animate="fade-up">
+            <span class="section-tag">WHY RAINBOW TOOLS</span>
+            <h2 class="section-title">Built for everyday<br><span class="gradient-text">digital work.</span></h2>
+        </div>
+        <div class="why-grid" data-animate="fade-up">
+            <div class="why-item">
+                <div class="why-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h4>No account required</h4>
+                <p>Start using tools immediately. No sign-up, no emails, no friction.</p>
+            </div>
+            <div class="why-item">
+                <div class="why-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <h4>Fast processing</h4>
+                <p>Optimized pipelines deliver results in seconds, not minutes.</p>
+            </div>
+            <div class="why-item">
+                <div class="why-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                </div>
+                <h4>Works on any device</h4>
+                <p>Desktop, laptop, tablet, or phone — the tools adapt to your screen.</p>
+            </div>
+            <div class="why-item">
+                <div class="why-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                </div>
+                <h4>Simple interface</h4>
+                <p>Clean, focused design. Upload, process, download — that's it.</p>
+            </div>
+            <div class="why-item">
+                <div class="why-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+                </div>
+                <h4>100 MB max upload</h4>
+                <p>Handle large files up to 100 MB without any restrictions.</p>
+            </div>
+            <div class="why-item">
+                <div class="why-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <h4>Private by default</h4>
+                <p>Files are processed in memory and never permanently stored on our servers.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ── USE CASES ── #}
+<section class="section usecases-section">
+    <div class="container">
+        <div class="section-header" data-animate="fade-up">
+            <span class="section-tag">WHO IT'S FOR</span>
+            <h2 class="section-title">Made for creators<br><span class="gradient-text">and professionals.</span></h2>
+        </div>
+        <div class="usecases-grid" data-animate="fade-up">
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                </div>
+                <h4>Designers</h4>
+                <p>Quick background removal, image enhancement, and file optimization.</p>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
+                </div>
+                <h4>Stock Contributors</h4>
+                <p>AI-powered metadata generation for faster uploads and better rankings.</p>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <h4>Students</h4>
+                <p>Extract text from images, convert PDFs, and compress files for assignments.</p>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h4>Small Businesses</h4>
+                <p>Process documents, optimize images for web, and manage files efficiently.</p>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                </div>
+                <h4>AI Artists</h4>
+                <p>Reverse-engineer artwork into prompts for Midjourney, SDXL, and DALL-E.</p>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                </div>
+                <h4>Content Creators</h4>
+                <p>Quick image edits, text extraction from screenshots, and file compression.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ── CTA ── #}
+<section class="section cta-section">
+    <div class="container">
+        <div class="cta-card" data-animate="fade-up">
+            <div class="cta-glow"></div>
+            <h2>Ready to get started?</h2>
+            <p>No sign-up. No wait. Just pick a tool and go.</p>
+            <div class="cta-actions">
+                <a href="#tools" class="btn btn-primary btn-lg">Explore All Tools</a>
+                <a href="{% url 'tool_detail' 'microstock-metadata' %}" class="btn btn-outline btn-lg">Try AI Metadata</a>
+            </div>
+        </div>
+    </div>
+</section>
+
 {% endblock %}
