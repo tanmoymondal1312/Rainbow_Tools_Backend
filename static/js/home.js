@@ -68,11 +68,35 @@
     var activeIndex = -1;
 
     function getFilteredTools(query, category) {
-        return toolData.filter(function (t) {
-            var matchesSearch = !query || t.name.indexOf(query) !== -1 || t.desc.toLowerCase().indexOf(query) !== -1;
+        var results = toolData.filter(function (t) {
+            var matchesSearch = !query || t.name.toLowerCase().indexOf(query) !== -1 || t.desc.toLowerCase().indexOf(query) !== -1;
             var matchesCategory = category === 'all' || t.category === category;
             return matchesSearch && matchesCategory;
         });
+
+        if (query) {
+            results.sort(function (a, b) {
+                var aName = a.name.toLowerCase();
+                var bName = b.name.toLowerCase();
+                // Exact match
+                if (aName === query && bName !== query) return -1;
+                if (bName === query && aName !== query) return 1;
+                // Starts with query
+                var aStarts = aName.indexOf(query) === 0;
+                var bStarts = bName.indexOf(query) === 0;
+                if (aStarts && !bStarts) return -1;
+                if (bStarts && !aStarts) return 1;
+                // Name contains query (higher priority than desc)
+                var aNameMatch = aName.indexOf(query) !== -1;
+                var bNameMatch = bName.indexOf(query) !== -1;
+                if (aNameMatch && !bNameMatch) return -1;
+                if (bNameMatch && !aNameMatch) return 1;
+                // Both in name or both in desc — shorter name wins
+                return aName.length - bName.length;
+            });
+        }
+
+        return results;
     }
 
     function renderSuggestions(matches) {
