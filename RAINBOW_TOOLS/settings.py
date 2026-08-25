@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'ImageOptimization',
     'PDFTools',
     'web_socket',
+    'MicrostockMetadata',
 ]
 
 MIDDLEWARE = [

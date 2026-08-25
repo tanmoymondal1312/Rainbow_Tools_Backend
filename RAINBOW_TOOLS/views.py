@@ -59,6 +59,13 @@ TOOLS = [
         'description': 'Shrink PDF file size without losing quality.',
         'color': '#ef4444',
     },
+    {
+        'slug': 'microstock-metadata',
+        'name': 'Microstock Metadata AI',
+        'icon': '🏷️',
+        'description': 'Generate SEO-optimized metadata for stock photography platforms using AI.',
+        'color': '#8b5cf6',
+    },
 ]
 
 
@@ -69,6 +76,7 @@ TOOL_TEMPLATES = {
     'reduce-image-size': 'tools/reduce_image_size.html',
     'pdf-to-docx': 'tools/pdf_to_docx.html',
     'optimize-pdf': 'tools/optimize_pdf.html',
+    'microstock-metadata': 'tools/microstock_metadata.html',
 }
 
 

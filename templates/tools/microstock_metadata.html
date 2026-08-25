@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Microstock Metadata AI — Rainbow Tools{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tool.css' %}">
+<link rel="stylesheet" href="{% static 'css/microstock-metadata.css' %}">
+<style>:root { --tool-accent: {{ tool.color }}; }</style>
+{% endblock %}
+
+{% block content %}
+<div class="mm-layout" id="mm-app">
+    <!-- Sidebar -->
+    <aside class="mm-sidebar" id="mm-sidebar">
+        <div class="mm-sidebar-brand">🏷️ MicrostockAI</div>
+
+        <div class="mm-sidebar-section">
+            <h3>Mode</h3>
+            <div class="mm-mode-toggle">
+                <button class="mm-mode-btn active" data-mode="metadata">Metadata</button>
+                <button class="mm-mode-btn" data-mode="prompt">To Prompt</button>
+            </div>
+        </div>
+
+        <div class="mm-sidebar-section" id="mm-metadata-settings">
+            <h3>Metadata Customization</h3>
+
+            <div class="mm-slider-row"><span>Title Words</span><span class="mm-slider-val" id="mm-title-val">8 – 22</span></div>
+            <input type="range" class="mm-slider" id="mm-min-title" min="4" max="15" value="8">
+            <input type="range" class="mm-slider" id="mm-max-title" min="12" max="35" value="22">
+
+            <div class="mm-slider-row"><span>Keywords</span><span class="mm-slider-val" id="mm-kw-val">25 – 49</span></div>
+            <input type="range" class="mm-slider" id="mm-min-kw" min="10" max="35" value="25">
+            <input type="range" class="mm-slider" id="mm-max-kw" min="25" max="50" value="49">
+
+            <div class="mm-slider-row"><span>Description Words</span><span class="mm-slider-val" id="mm-desc-val">18 – 32</span></div>
+            <input type="range" class="mm-slider" id="mm-min-desc" min="10" max="25" value="18">
+            <input type="range" class="mm-slider" id="mm-max-desc" min="25" max="50" value="32">
+        </div>
+
+        <div class="mm-sidebar-section" id="mm-toggles-section">
+            <h3>Settings</h3>
+            <div class="mm-toggle-row">
+                <label for="mm-single-kw">Single Word Keywords</label>
+                <input type="checkbox" class="mm-toggle" id="mm-single-kw" checked>
+            </div>
+            <div class="mm-toggle-row">
+                <label for="mm-silhouette">Silhouette</label>
+                <input type="checkbox" class="mm-toggle" id="mm-silhouette">
+            </div>
+            <div class="mm-toggle-row">
+                <label for="mm-transparent">Transparent BG</label>
+                <input type="checkbox" class="mm-toggle" id="mm-transparent">
+            </div>
+            <div class="mm-toggle-row">
+                <label for="mm-custom-prompt">Custom Prompt</label>
+                <input type="checkbox" class="mm-toggle" id="mm-custom-prompt">
+            </div>
+            <textarea class="mm-textarea" id="mm-custom-prompt-text" placeholder="Additional instructions for AI..." hidden></textarea>
+            <div class="mm-toggle-row">
+                <label for="mm-prohibited">Prohibited Words</label>
+                <input type="checkbox" class="mm-toggle" id="mm-prohibited">
+            </div>
+            <textarea class="mm-textarea" id="mm-prohibited-text" placeholder="word1, word2, word3" hidden></textarea>
+        </div>
+
+        <button class="mm-btn-reset" id="mm-reset-btn">Reset Defaults</button>
+
+        <div class="mm-sidebar-footer">
+            <span>v2.5 Microstock Pro</span>
+            <span><span class="mm-status-dot"></span>AI Ready</span>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="mm-main">
+        <!-- Header -->
+        <div class="mm-header" id="mm-header" style="display:none">
+            <div class="mm-header-left">
+                <button class="mm-sidebar-toggle" id="mm-sidebar-toggle">☰</button>
+                <span class="mm-header-filename" id="mm-filename"></span>
+                <span class="mm-platform-badge" id="mm-header-platform"></span>
+            </div>
+            <div class="mm-header-actions">
+                <button class="mm-header-btn" id="mm-btn-back">← Files</button>
+                <button class="mm-header-btn" id="mm-btn-regen-all">↻ Regenerate</button>
+                <button class="mm-header-btn" id="mm-btn-copy-all">📋 Copy All</button>
+                <button class="mm-header-btn" id="mm-btn-csv">📥 CSV</button>
+                <button class="mm-header-btn" id="mm-btn-json">📥 JSON</button>
+            </div>
+        </div>
+
+        <!-- Platform selector -->
+        <div class="mm-platforms" id="mm-platforms" style="display:none"></div>
+
+        <!-- Workspace -->
+        <div class="mm-workspace" id="mm-workspace">
+            <!-- Upload zone (empty state) -->
+            <div id="mm-upload-view">
+                <div class="mm-upload-zone" id="mm-dropzone">
+                    <input type="file" id="mm-file-input" accept=".jpg,.jpeg,.png,.webp,.eps,.svg,.ai,image/*" multiple hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 16V4M12 4l-4 4M12 4l4 4"></path>
+                        <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
+                    </svg>
+                    <h3>Drop your artwork here</h3>
+                    <p>or click to browse files</p>
+                    <div class="mm-upload-formats">
+                        <span class="mm-format-badge">EPS</span>
+                        <span class="mm-format-badge">SVG</span>
+                        <span class="mm-format-badge">PNG</span>
+                        <span class="mm-format-badge">JPG</span>
+                        <span class="mm-format-badge">WEBP</span>
+                        <span class="mm-format-badge">AI</span>
+                    </div>
+                    <div class="mm-samples">
+                        <h4>Quick Demo Artworks</h4>
+                        <div class="mm-samples-grid">
+                            <button class="mm-sample-btn" data-sample="botanical">Tropical Botanical</button>
+                            <button class="mm-sample-btn" data-sample="cloud-ai">Isometric Cloud AI</button>
+                            <button class="mm-sample-btn" data-sample="business">Business Team</button>
+                            <button class="mm-sample-btn" data-sample="coffee">Vintage Coffee</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="mm-progress" id="mm-progress" style="display:none">
+                <div class="mm-progress-track"><div class="mm-progress-fill" id="mm-progress-fill"></div></div>
+                <div class="mm-progress-text" id="mm-progress-text"></div>
+            </div>
+
+            <!-- Rate limit banner -->
+            <div class="mm-rate-limit" id="mm-rate-limit" style="display:none">
+                ⏳ Rate limit reached. Waiting before retrying...
+            </div>
+
+            <!-- Detail view -->
+            <div id="mm-detail-view" style="display:none"></div>
+
+            <!-- Batch view -->
+            <div id="mm-batch-view" style="display:none"></div>
+
+            <!-- Prompt view -->
+            <div id="mm-prompt-view" style="display:none"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="mm-toast-container" id="mm-toast-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/tool-common.js' %}"></script>
+<script src="{% static 'js/microstock-metadata-services.js' %}"></script>
+<script src="{% static 'js/microstock-metadata-ui.js' %}"></script>
+<script src="{% static 'js/microstock-metadata.js' %}"></script>
+{% endblock %}

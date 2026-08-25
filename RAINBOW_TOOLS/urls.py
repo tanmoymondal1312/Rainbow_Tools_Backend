@@ -9,4 +9,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('image-optimization/', include('ImageOptimization.urls')),
     path('pdf-tools/',          include('PDFTools.urls')),
+    path('microstock-metadata/', include('MicrostockMetadata.urls')),
 ]
