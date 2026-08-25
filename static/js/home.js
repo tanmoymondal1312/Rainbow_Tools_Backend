@@ -78,24 +78,33 @@
     function renderSuggestions(matches) {
         activeIndex = -1;
         if (!matches.length) {
-            suggestionsEl.innerHTML = '<div class="search-suggestion" style="opacity:0.5;cursor:default;"><span class="search-suggestion-name">No tools found</span></div>';
+            suggestionsEl.innerHTML = '<div class="search-suggestion-empty">No tools found<span>Try a different search term</span></div>';
             suggestionsEl.classList.add('open');
             return;
         }
+        var catColors = { image: '#3b82f6', pdf: '#ef4444', ai: '#a855f7' };
+        var catIcons = {
+            image: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+            pdf: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>',
+            ai: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>'
+        };
         var html = '';
         matches.forEach(function (t, i) {
-            var catColors = { image: '#3b82f6', pdf: '#ef4444', ai: '#a855f7' };
             var color = catColors[t.category] || '#a855f7';
+            var icon = catIcons[t.category] || catIcons.image;
             html += '<div class="search-suggestion" data-index="' + i + '" data-slug="' + t.slug + '">'
-                + '<div class="search-suggestion-icon" style="background:' + color + '20;color:' + color + ';">'
-                + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'
+                + '<div class="search-suggestion-icon" style="background:' + color + '18;color:' + color + ';">'
+                + icon
                 + '</div>'
                 + '<div class="search-suggestion-info">'
                 + '<div class="search-suggestion-name">' + t.name + '</div>'
-                + '<div class="search-suggestion-cat">' + t.category + '</div>'
+                + '<div class="search-suggestion-desc">' + t.desc + '</div>'
                 + '</div>'
+                + '<div class="search-suggestion-meta">'
+                + '<span class="search-suggestion-cat">' + t.category + '</span>'
                 + '<div class="search-suggestion-arrow">'
                 + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'
+                + '</div>'
                 + '</div>'
                 + '</div>';
         });

@@ -240,13 +240,14 @@ ul, ol { list-style: none; }
     justify-content: center;
     text-align: center;
     padding: 7rem 1.5rem 2.5rem;
-    overflow: hidden;
+    overflow: visible;
 }
 .hero-compact { min-height: auto; }
 .hero-bg {
     position: absolute;
     inset: 0;
     pointer-events: none;
+    overflow: hidden;
 }
 .hero-orb {
     position: absolute;
@@ -326,67 +327,106 @@ ul, ol { list-style: none; }
     font-size: 1.05rem;
     color: var(--text-secondary);
     max-width: 540px;
-    margin: 0 auto 2rem;
+    margin: 0 auto;
     line-height: 1.7;
 }
 
-/* Hero search */
-.hero-search-wrap {
-    max-width: 480px;
-    margin: 0 auto;
-}
-.hero-search {
+/* ── SEARCH SECTION ── */
+.search-section {
     position: relative;
+    z-index: 50;
+    padding: 0 1.5rem;
+    margin-top: -0.5rem;
+    margin-bottom: 2rem;
+}
+.search-box {
+    position: relative;
+    max-width: 560px;
+    margin: 0 auto;
     display: flex;
     align-items: center;
-}
-.hero-search-icon {
-    position: absolute;
-    left: 1rem;
-    color: var(--text-muted);
-    pointer-events: none;
-    z-index: 2;
-}
-.hero-search-input {
-    width: 100%;
-    padding: 0.85rem 1rem 0.85rem 2.75rem;
-    font-size: 0.95rem;
-    font-family: var(--font);
-    color: var(--text-primary);
+    gap: 0.5rem;
+    padding: 0 1rem;
+    height: 52px;
     background: var(--bg-surface);
     border: 1px solid var(--border-hover);
     border-radius: var(--radius);
-    outline: none;
     transition: all var(--transition);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2), 0 0 0 0 rgba(168,85,247,0);
 }
-.hero-search-input::placeholder { color: var(--text-muted); }
-.hero-search-input:focus {
+.search-box:hover {
+    border-color: rgba(255,255,255,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.search-box:focus-within {
     border-color: var(--purple);
-    box-shadow: 0 0 0 3px rgba(168,85,247,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 3px rgba(168,85,247,0.12);
 }
+.search-box-icon {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: color var(--transition);
+}
+.search-box:focus-within .search-box-icon {
+    color: var(--purple);
+}
+.search-box-input {
+    flex: 1;
+    height: 100%;
+    padding: 0;
+    font-size: 0.92rem;
+    font-family: var(--font);
+    color: var(--text-primary);
+    background: transparent;
+    border: none;
+    outline: none;
+}
+.search-box-input::placeholder { color: var(--text-muted); }
+.search-box-kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.65rem;
+    font-family: var(--font);
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    line-height: 1.4;
+    flex-shrink: 0;
+    transition: opacity var(--transition);
+}
+.search-box:not(:focus-within) .search-box-kbd { opacity: 1; }
+.search-box:focus-within .search-box-kbd { opacity: 0; pointer-events: none; }
 
-/* Search suggestions */
+/* Search suggestions dropdown */
 .search-suggestions {
     display: none;
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
     background: var(--bg-elevated);
     border: 1px solid var(--border-hover);
     border-radius: var(--radius);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-    z-index: 100;
-    max-height: 280px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03);
+    z-index: 200;
+    max-height: 320px;
     overflow-y: auto;
     overscroll-behavior: contain;
+    animation: suggestions-in 0.15s ease-out;
+}
+@keyframes suggestions-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 .search-suggestions.open { display: block; }
 .search-suggestion {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.7rem 1rem;
+    padding: 0.65rem 0.85rem;
     cursor: pointer;
     transition: background var(--transition);
     border-bottom: 1px solid var(--border);
@@ -397,25 +437,43 @@ ul, ol { list-style: none; }
     background: var(--bg-hover);
 }
 .search-suggestion-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: var(--text-primary);
 }
 .search-suggestion-info { flex: 1; min-width: 0; }
 .search-suggestion-name {
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-primary);
+    line-height: 1.3;
+}
+.search-suggestion-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.search-suggestion-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 .search-suggestion-cat {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
+    font-weight: 500;
     color: var(--text-muted);
     text-transform: capitalize;
+    padding: 0.15rem 0.45rem;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
 }
 .search-suggestion-arrow {
     color: var(--text-muted);
@@ -426,6 +484,18 @@ ul, ol { list-style: none; }
 .search-suggestion:hover .search-suggestion-arrow,
 .search-suggestion.active .search-suggestion-arrow {
     opacity: 1;
+}
+.search-suggestion-empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+.search-suggestion-empty span {
+    display: block;
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
+    opacity: 0.6;
 }
 
 /* ── TOOL FILTERS ── */
@@ -1101,6 +1171,9 @@ ul, ol { list-style: none; }
     .hero { padding: 6rem 1rem 2rem; }
     .hero-title { font-size: 1.75rem; }
     .hero-sub { font-size: 0.95rem; }
+    .search-section { padding: 0 1rem; margin-top: -0.25rem; }
+    .search-box { height: 48px; padding: 0 0.75rem; }
+    .search-box-kbd { display: none; }
     .section { padding: 3.5rem 0; }
     .section-title { font-size: 1.75rem; }
     .tools-grid { grid-template-columns: 1fr; }
