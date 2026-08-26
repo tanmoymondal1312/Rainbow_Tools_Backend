@@ -245,32 +245,45 @@
 
         firebaseAuth.signInWithRedirect(provider);
     }
-
-    // ── Handle redirect result on page load ──
+    // ── Handle redirect result + auth state on page load ──
     function handleRedirectResult() {
         if (!firebaseAuth) return;
-        console.log('[AUTH] Checking redirect result...');
+        console.log('[AUTH] Setting up auth state listener...');
+
+        // Listen for auth state changes (fires after redirect completes too)
+        firebaseAuth.onAuthStateChanged(function (user) {
+            console.log('[AUTH] onAuthStateChanged fired, user:', user ? user.uid : 'null');
+
+            if (user) {
+                // User is signed in from redirect or existing session
+                console.log('[AUTH] User found, getting ID token...');
+                user.getIdToken().then(function (idToken) {
+                    console.log('[AUTH] Got ID token, length:', idToken.length);
+                    // Check Django session first to avoid duplicate login
+                    fetch('/auth/user/')
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            if (data.authenticated) {
+                                console.log('[AUTH] Already logged in on Django side');
+                                showLoggedIn(data.user);
+                            } else {
+                                console.log('[AUTH] Not logged in on Django, sending token...');
+                                completeAuth(idToken);
+                            }
+                        });
+                });
+            }
+        });
+
+        // Also try getRedirectResult as backup
         firebaseAuth.getRedirectResult().then(function (result) {
             if (result && result.user) {
-                console.log('[AUTH] Redirect result has user:', result.user.uid, result.user.email);
-                return result.user.getIdToken();
-            }
-            console.log('[AUTH] No redirect result');
-            return null;
-        }).then(function (idToken) {
-            if (idToken) {
-                console.log('[AUTH] Got ID token from redirect, sending to Django...');
-                return completeAuth(idToken);
+                console.log('[AUTH] getRedirectResult has user:', result.user.uid);
+            } else {
+                console.log('[AUTH] getRedirectResult: no result (handled by onAuthStateChanged)');
             }
         }).catch(function (e) {
-            console.error('[AUTH] Redirect result error:', e.code, e.message);
-            setButtonLoading(false);
-            if (e.code === 'auth/user-cancelled-sign-in') return;
-            if (e.code === 'auth/network-request-failed') {
-                showError('Network error. Check your connection and try again.');
-                return;
-            }
-            showError('Sign-in failed. Please try again.');
+            console.error('[AUTH] getRedirectResult error:', e.code, e.message);
         });
     }
 
