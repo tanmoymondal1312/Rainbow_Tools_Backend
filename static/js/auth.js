@@ -7,6 +7,7 @@
 
     var firebaseAuth = null;
     var currentUser = null;
+    var isAuthenticating = false;
 
     // ── DOM refs ──
     var modal = document.getElementById('auth-modal');
@@ -18,7 +19,10 @@
 
     // ── Initialize Firebase (CDN compat) ──
     function initFirebase() {
-        if (typeof firebase === 'undefined') return;
+        if (typeof firebase === 'undefined') {
+            console.warn('Firebase SDK not loaded');
+            return;
+        }
         var config = {
             apiKey: "AIzaSyDy_RTlea3U_naTKy6Lywqf0Hcb4d-r-so",
             authDomain: "rainbowtools-d033f.firebaseapp.com",
@@ -76,17 +80,40 @@
 
     // ── Show error ──
     function showError(msg) {
-        errorEl.textContent = msg;
+        if (errorEl) errorEl.textContent = msg;
+    }
+
+    // ── Button loading state ──
+    function setButtonLoading(loading) {
+        if (!googleBtn) return;
+        if (loading) {
+            googleBtn.disabled = true;
+            googleBtn.classList.add('auth-google-btn--loading');
+            googleBtn.setAttribute('data-original', googleBtn.innerHTML);
+            googleBtn.innerHTML = '<svg class="auth-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="m16.24 5.76-2.12 2.12"/><path d="M20 12h-4"/><path d="m16.24 18.24-2.12-2.12"/><path d="M12 20v-4"/><path d="m7.76 18.24 2.12-2.12"/><path d="M4 12h4"/><path d="m7.76 5.76 2.12 2.12"/></svg> Signing in...';
+        } else {
+            googleBtn.disabled = false;
+            googleBtn.classList.remove('auth-google-btn--loading');
+            if (googleBtn.hasAttribute('data-original')) {
+                googleBtn.innerHTML = googleBtn.getAttribute('data-original');
+            }
+        }
+        isAuthenticating = loading;
     }
 
     // ── Modal open/close ──
     function openModal() {
-        modal.classList.add('open');
-        errorEl.textContent = '';
+        if (modal) {
+            modal.classList.add('open');
+            if (errorEl) errorEl.textContent = '';
+        }
     }
     function closeModal() {
-        modal.classList.remove('open');
-        errorEl.textContent = '';
+        if (isAuthenticating) return;
+        if (modal) {
+            modal.classList.remove('open');
+            if (errorEl) errorEl.textContent = '';
+        }
     }
 
     // ── Update navbar for logged-in user ──
@@ -147,8 +174,26 @@
             wrapper.outerHTML = '<button class="btn btn-sm btn-ghost" id="account-btn" aria-label="Account">'
                 + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
                 + ' Account</button>';
-            document.getElementById('account-btn').addEventListener('click', openModal);
+            var newBtn = document.getElementById('account-btn');
+            if (newBtn) newBtn.addEventListener('click', openModal);
         }
+    }
+
+    // ── Complete auth after token ──
+    function completeAuth(idToken) {
+        return sendToDjango(idToken).then(function (data) {
+            setButtonLoading(false);
+            if (data.status === 'ok') {
+                closeModal();
+                showLoggedIn(data.user);
+                showToast('Welcome, ' + (data.user.displayName || data.user.email || 'User') + '!');
+            } else {
+                showError(data.error || 'Login failed. Please try again.');
+            }
+        }).catch(function () {
+            setButtonLoading(false);
+            showError('Connection error. Please try again.');
+        });
     }
 
     // ── Logout ──
@@ -163,32 +208,89 @@
         });
     }
 
+    // ── Detect mobile ──
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
     // ── Google sign-in ──
     function doGoogleLogin() {
-        if (!firebaseAuth) { showError('Firebase not initialized'); return; }
+        if (!firebaseAuth) {
+            showError('Authentication unavailable. Please refresh the page.');
+            return;
+        }
+        if (isAuthenticating) return;
+
         errorEl.textContent = '';
+        setButtonLoading(true);
+
         var provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('profile');
+        provider.addScope('email');
+
+        // On mobile, use redirect to avoid popup blocking issues
+        if (isMobileDevice()) {
+            firebaseAuth.signInWithRedirect(provider);
+            return;
+        }
+
         firebaseAuth.signInWithPopup(provider)
             .then(function (result) {
                 return result.user.getIdToken();
             })
             .then(function (idToken) {
-                return sendToDjango(idToken);
-            })
-            .then(function (data) {
-                if (data.status === 'ok') {
-                    closeModal();
-                    showLoggedIn(data.user);
-                    showToast('Welcome, ' + (data.user.displayName || data.user.email || 'User') + '!');
-                } else {
-                    showError(data.error || 'Login failed');
-                }
+                return completeAuth(idToken);
             })
             .catch(function (err) {
-                if (err.code === 'auth/popup-closed-by-user') return;
-                if (err.code === 'auth/cancelled-popup-request') return;
-                showError(err.message || 'Google sign-in failed');
+                setButtonLoading(false);
+
+                var code = err.code || '';
+
+                // User cancelled — not an error, just reset state
+                if (code === 'auth/popup-closed-by-user' ||
+                    code === 'auth/cancelled-popup-request' ||
+                    code === 'auth/user-cancelled-sign-in') {
+                    return;
+                }
+
+                // Popup blocked — fall back to redirect
+                if (code === 'auth/popup-blocked' || code === 'auth/operation-not-allowed') {
+                    firebaseAuth.signInWithRedirect(provider);
+                    return;
+                }
+
+                // Network error
+                if (code === 'auth/network-request-failed') {
+                    showError('Network error. Check your connection and try again.');
+                    return;
+                }
+
+                // Too many requests
+                if (code === 'auth/too-many-requests') {
+                    showError('Too many attempts. Please wait a moment and try again.');
+                    return;
+                }
+
+                // Generic fallback — show friendly message, not raw Firebase text
+                showError('Sign-in failed. Please try again.');
             });
+    }
+
+    // ── Handle redirect result on page load ──
+    function handleRedirectResult() {
+        if (!firebaseAuth) return;
+        firebaseAuth.getRedirectResult().then(function (result) {
+            if (result && result.user) {
+                return result.user.getIdToken();
+            }
+            return null;
+        }).then(function (idToken) {
+            if (idToken) {
+                return completeAuth(idToken);
+            }
+        }).catch(function () {
+            // Redirect result failed silently
+        });
     }
 
     // ── Check auth state on load ──
@@ -197,7 +299,8 @@
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.authenticated) showLoggedIn(data.user);
-            });
+            })
+            .catch(function () {});
     }
 
     // ── Event bindings ──
@@ -205,15 +308,27 @@
         if (accountBtn) accountBtn.addEventListener('click', openModal);
         if (accountBtnMobile) accountBtnMobile.addEventListener('click', openModal);
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
-        if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-        if (googleBtn) googleBtn.addEventListener('click', doGoogleLogin);
+        if (modal) {
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) closeModal();
+            });
+        }
+        if (googleBtn) {
+            googleBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                doGoogleLogin();
+            });
+        }
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && modal && modal.classList.contains('open')) closeModal();
+            if (e.key === 'Escape' && modal && modal.classList.contains('open')) {
+                closeModal();
+            }
         });
     }
 
     initFirebase();
     bind();
+    handleRedirectResult();
     checkAuthState();
 
 })();

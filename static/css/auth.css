@@ -102,6 +102,23 @@
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
+.auth-google-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+.auth-google-btn--loading {
+    pointer-events: none;
+}
+
+@keyframes auth-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.auth-spinner {
+    animation: auth-spin 0.8s linear infinite;
+}
 
 .auth-error {
     font-size: 0.82rem;
