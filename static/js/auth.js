@@ -241,61 +241,9 @@
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
-        console.log('[AUTH] Google provider created, isMobile:', isMobileDevice());
+        console.log('[AUTH] Using signInWithRedirect for all devices');
 
-        // On mobile, use redirect to avoid popup blocking issues
-        if (isMobileDevice()) {
-            console.log('[AUTH] Mobile detected, using signInWithRedirect');
-            firebaseAuth.signInWithRedirect(provider);
-            return;
-        }
-
-        console.log('[AUTH] Calling signInWithPopup...');
-        firebaseAuth.signInWithPopup(provider)
-            .then(function (result) {
-                console.log('[AUTH] Popup success! user:', result.user.uid, result.user.email);
-                return result.user.getIdToken();
-            })
-            .then(function (idToken) {
-                console.log('[AUTH] Got ID token, sending to Django...');
-                return completeAuth(idToken);
-            })
-            .catch(function (err) {
-                console.error('[AUTH] Popup error:', err.code, err.message);
-                setButtonLoading(false);
-
-                var code = err.code || '';
-
-                // User cancelled — not an error, just reset state
-                if (code === 'auth/popup-closed-by-user' ||
-                    code === 'auth/cancelled-popup-request' ||
-                    code === 'auth/user-cancelled-sign-in') {
-                    console.log('[AUTH] User cancelled, ignoring');
-                    return;
-                }
-
-                // Popup blocked — fall back to redirect
-                if (code === 'auth/popup-blocked' || code === 'auth/operation-not-allowed') {
-                    console.log('[AUTH] Popup blocked, falling back to redirect');
-                    firebaseAuth.signInWithRedirect(provider);
-                    return;
-                }
-
-                // Network error
-                if (code === 'auth/network-request-failed') {
-                    showError('Network error. Check your connection and try again.');
-                    return;
-                }
-
-                // Too many requests
-                if (code === 'auth/too-many-requests') {
-                    showError('Too many attempts. Please wait a moment and try again.');
-                    return;
-                }
-
-                // Generic fallback
-                showError('Sign-in failed. Please try again.');
-            });
+        firebaseAuth.signInWithRedirect(provider);
     }
 
     // ── Handle redirect result on page load ──
@@ -304,17 +252,25 @@
         console.log('[AUTH] Checking redirect result...');
         firebaseAuth.getRedirectResult().then(function (result) {
             if (result && result.user) {
-                console.log('[AUTH] Redirect result has user:', result.user.uid);
+                console.log('[AUTH] Redirect result has user:', result.user.uid, result.user.email);
                 return result.user.getIdToken();
             }
             console.log('[AUTH] No redirect result');
             return null;
         }).then(function (idToken) {
             if (idToken) {
+                console.log('[AUTH] Got ID token from redirect, sending to Django...');
                 return completeAuth(idToken);
             }
         }).catch(function (e) {
             console.error('[AUTH] Redirect result error:', e.code, e.message);
+            setButtonLoading(false);
+            if (e.code === 'auth/user-cancelled-sign-in') return;
+            if (e.code === 'auth/network-request-failed') {
+                showError('Network error. Check your connection and try again.');
+                return;
+            }
+            showError('Sign-in failed. Please try again.');
         });
     }
 
