@@ -20,9 +20,10 @@
     // ── Initialize Firebase (CDN compat) ──
     function initFirebase() {
         if (typeof firebase === 'undefined') {
-            console.warn('Firebase SDK not loaded');
+            console.error('[AUTH] Firebase SDK not loaded!');
             return;
         }
+        console.log('[AUTH] Firebase SDK loaded, initializing...');
         var config = {
             apiKey: "AIzaSyDy_RTlea3U_naTKy6Lywqf0Hcb4d-r-so",
             authDomain: "rainbowtools-d033f.firebaseapp.com",
@@ -31,8 +32,13 @@
             messagingSenderId: "125615206139",
             appId: "1:125615206139:web:a0c38c9e22588eee7b4a5e"
         };
-        firebase.initializeApp(config);
-        firebaseAuth = firebase.auth();
+        try {
+            firebase.initializeApp(config);
+            firebaseAuth = firebase.auth();
+            console.log('[AUTH] Firebase initialized OK, authDomain:', config.authDomain);
+        } catch (e) {
+            console.error('[AUTH] Firebase init error:', e);
+        }
     }
 
     // ── CSRF token ──
@@ -181,7 +187,9 @@
 
     // ── Complete auth after token ──
     function completeAuth(idToken) {
+        console.log('[AUTH] completeAuth called, token length:', idToken.length);
         return sendToDjango(idToken).then(function (data) {
+            console.log('[AUTH] Django response:', data.status, data.error || '');
             setButtonLoading(false);
             if (data.status === 'ok') {
                 closeModal();
@@ -190,7 +198,8 @@
             } else {
                 showError(data.error || 'Login failed. Please try again.');
             }
-        }).catch(function () {
+        }).catch(function (e) {
+            console.error('[AUTH] Django request failed:', e);
             setButtonLoading(false);
             showError('Connection error. Please try again.');
         });
@@ -215,11 +224,16 @@
 
     // ── Google sign-in ──
     function doGoogleLogin() {
+        console.log('[AUTH] doGoogleLogin called');
         if (!firebaseAuth) {
+            console.error('[AUTH] Firebase auth not initialized!');
             showError('Authentication unavailable. Please refresh the page.');
             return;
         }
-        if (isAuthenticating) return;
+        if (isAuthenticating) {
+            console.log('[AUTH] Already authenticating, skipping');
+            return;
+        }
 
         errorEl.textContent = '';
         setButtonLoading(true);
@@ -227,21 +241,27 @@
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
+        console.log('[AUTH] Google provider created, isMobile:', isMobileDevice());
 
         // On mobile, use redirect to avoid popup blocking issues
         if (isMobileDevice()) {
+            console.log('[AUTH] Mobile detected, using signInWithRedirect');
             firebaseAuth.signInWithRedirect(provider);
             return;
         }
 
+        console.log('[AUTH] Calling signInWithPopup...');
         firebaseAuth.signInWithPopup(provider)
             .then(function (result) {
+                console.log('[AUTH] Popup success! user:', result.user.uid, result.user.email);
                 return result.user.getIdToken();
             })
             .then(function (idToken) {
+                console.log('[AUTH] Got ID token, sending to Django...');
                 return completeAuth(idToken);
             })
             .catch(function (err) {
+                console.error('[AUTH] Popup error:', err.code, err.message);
                 setButtonLoading(false);
 
                 var code = err.code || '';
@@ -250,11 +270,13 @@
                 if (code === 'auth/popup-closed-by-user' ||
                     code === 'auth/cancelled-popup-request' ||
                     code === 'auth/user-cancelled-sign-in') {
+                    console.log('[AUTH] User cancelled, ignoring');
                     return;
                 }
 
                 // Popup blocked — fall back to redirect
                 if (code === 'auth/popup-blocked' || code === 'auth/operation-not-allowed') {
+                    console.log('[AUTH] Popup blocked, falling back to redirect');
                     firebaseAuth.signInWithRedirect(provider);
                     return;
                 }
@@ -271,7 +293,7 @@
                     return;
                 }
 
-                // Generic fallback — show friendly message, not raw Firebase text
+                // Generic fallback
                 showError('Sign-in failed. Please try again.');
             });
     }
@@ -279,32 +301,40 @@
     // ── Handle redirect result on page load ──
     function handleRedirectResult() {
         if (!firebaseAuth) return;
+        console.log('[AUTH] Checking redirect result...');
         firebaseAuth.getRedirectResult().then(function (result) {
             if (result && result.user) {
+                console.log('[AUTH] Redirect result has user:', result.user.uid);
                 return result.user.getIdToken();
             }
+            console.log('[AUTH] No redirect result');
             return null;
         }).then(function (idToken) {
             if (idToken) {
                 return completeAuth(idToken);
             }
-        }).catch(function () {
-            // Redirect result failed silently
+        }).catch(function (e) {
+            console.error('[AUTH] Redirect result error:', e.code, e.message);
         });
     }
 
     // ── Check auth state on load ──
     function checkAuthState() {
+        console.log('[AUTH] checkAuthState called');
         fetch('/auth/user/')
             .then(function (r) { return r.json(); })
             .then(function (data) {
+                console.log('[AUTH] Auth state:', data.authenticated ? 'logged in' : 'anonymous');
                 if (data.authenticated) showLoggedIn(data.user);
             })
-            .catch(function () {});
+            .catch(function (e) {
+                console.error('[AUTH] checkAuthState failed:', e);
+            });
     }
 
     // ── Event bindings ──
     function bind() {
+        console.log('[AUTH] Binding events, accountBtn:', !!accountBtn, 'googleBtn:', !!googleBtn);
         if (accountBtn) accountBtn.addEventListener('click', openModal);
         if (accountBtnMobile) accountBtnMobile.addEventListener('click', openModal);
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -316,6 +346,7 @@
         if (googleBtn) {
             googleBtn.addEventListener('click', function (e) {
                 e.preventDefault();
+                console.log('[AUTH] Google button clicked');
                 doGoogleLogin();
             });
         }
@@ -326,9 +357,11 @@
         });
     }
 
+    console.log('[AUTH] Script loading...');
     initFirebase();
     bind();
     handleRedirectResult();
     checkAuthState();
+    console.log('[AUTH] Script loaded, firebaseAuth:', !!firebaseAuth);
 
 })();

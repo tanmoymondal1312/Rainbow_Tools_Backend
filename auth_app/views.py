@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -12,12 +13,15 @@ from django.views.decorators.http import require_POST
 import firebase_admin
 from firebase_admin import auth as fb_auth, credentials
 
+logger = logging.getLogger('auth_app')
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 SERVICE_ACCOUNT_PATH = BASE_DIR / 'firebase' / 'serviceAccount.json'
 
 if not firebase_admin._apps:
     cred = credentials.Certificate(str(SERVICE_ACCOUNT_PATH))
     firebase_admin.initialize_app(cred)
+    logger.info('[AUTH] Firebase Admin initialized')
 
 
 def _get_or_create_user(uid, email, display_name):
@@ -38,19 +42,24 @@ def _get_or_create_user(uid, email, display_name):
 @csrf_exempt
 @require_POST
 def firebase_login(request):
+    logger.info('[AUTH LOGIN] POST /auth/login/ called')
     try:
         data = json.loads(request.body)
         id_token = data.get('idToken')
         if not id_token:
+            logger.warning('[AUTH LOGIN] Missing idToken')
             return JsonResponse({'error': 'Missing idToken'}, status=400)
 
+        logger.info('[AUTH LOGIN] Verifying token, length=%d', len(id_token))
         decoded = fb_auth.verify_id_token(id_token)
         uid = decoded['uid']
         email = decoded.get('email', '')
         display_name = decoded.get('name', '')
 
+        logger.info('[AUTH LOGIN] Token verified: uid=%s email=%s name=%s', uid, email, display_name)
         user = _get_or_create_user(uid, email, display_name)
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        logger.info('[AUTH LOGIN] Login successful for uid=%s', uid)
 
         return JsonResponse({
             'status': 'ok',
@@ -60,11 +69,14 @@ def firebase_login(request):
                 'displayName': display_name,
             }
         })
-    except fb_auth.InvalidIdTokenError:
+    except fb_auth.InvalidIdTokenError as e:
+        logger.error('[AUTH LOGIN] InvalidIdTokenError: %s', e)
         return JsonResponse({'error': 'Invalid Firebase ID token'}, status=401)
-    except fb_auth.ExpiredIdTokenError:
+    except fb_auth.ExpiredIdTokenError as e:
+        logger.error('[AUTH LOGIN] ExpiredIdTokenError: %s', e)
         return JsonResponse({'error': 'Token expired'}, status=401)
     except Exception as e:
+        logger.exception('[AUTH LOGIN] Unexpected error: %s', e)
         return JsonResponse({'error': str(e)}, status=500)
 
 
