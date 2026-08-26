@@ -1,12 +1,10 @@
 /* ═══════════════════════════════════════════
-   RAINBOW TOOLS — Firebase Auth (Django Bridge)
+   RAINBOW TOOLS — Firebase Auth (Google Only)
    ═══════════════════════════════════════════ */
 
 (function () {
     'use strict';
 
-    // ── Firebase SDK loaded via CDN ──
-    var firebaseApp = null;
     var firebaseAuth = null;
     var currentUser = null;
 
@@ -14,26 +12,13 @@
     var modal = document.getElementById('auth-modal');
     var closeBtn = document.getElementById('auth-close');
     var googleBtn = document.getElementById('auth-google-btn');
-    var emailForm = document.getElementById('auth-email-form');
-    var emailInput = document.getElementById('auth-email');
-    var passwordInput = document.getElementById('auth-password');
     var errorEl = document.getElementById('auth-error');
-    var submitBtn = document.getElementById('auth-submit-btn');
-    var switchBtn = document.getElementById('auth-switch-btn');
-    var switchText = document.getElementById('auth-switch-text');
-    var titleEl = document.getElementById('auth-title');
-    var subtitleEl = document.getElementById('auth-subtitle');
     var accountBtn = document.getElementById('account-btn');
     var accountBtnMobile = document.getElementById('account-btn-mobile');
 
-    var isSignup = false;
-
-    // ── Initialize Firebase (CDN) ──
+    // ── Initialize Firebase (CDN compat) ──
     function initFirebase() {
-        if (typeof firebase === 'undefined') {
-            console.warn('Firebase SDK not loaded');
-            return;
-        }
+        if (typeof firebase === 'undefined') return;
         var config = {
             apiKey: "AIzaSyDy_RTlea3U_naTKy6Lywqf0Hcb4d-r-so",
             authDomain: "rainbowtools-d033f.firebaseapp.com",
@@ -71,35 +56,33 @@
         }).then(function (r) { return r.json(); });
     }
 
+    // ── Toast ──
+    function showToast(message, type) {
+        var container = document.getElementById('toast-container');
+        if (!container) return;
+        var toast = document.createElement('div');
+        toast.className = 'toast toast-' + (type || 'success');
+        var icon = type === 'error'
+            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>'
+            : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>';
+        toast.innerHTML = icon + '<span>' + message + '</span>';
+        container.appendChild(toast);
+        requestAnimationFrame(function () { toast.classList.add('toast-show'); });
+        setTimeout(function () {
+            toast.classList.remove('toast-show');
+            setTimeout(function () { toast.remove(); }, 300);
+        }, 3000);
+    }
+
     // ── Show error ──
     function showError(msg) {
         errorEl.textContent = msg;
     }
 
-    // ── Toggle mode ──
-    function toggleMode() {
-        isSignup = !isSignup;
-        errorEl.textContent = '';
-        if (isSignup) {
-            titleEl.textContent = 'Create your account';
-            subtitleEl.textContent = 'Start using Rainbow Tools with your account.';
-            submitBtn.textContent = 'Create Account';
-            switchText.textContent = 'Already have an account?';
-            switchBtn.textContent = 'Sign In';
-        } else {
-            titleEl.textContent = 'Sign in to Rainbow Tools';
-            subtitleEl.textContent = 'Access your account and saved preferences.';
-            submitBtn.textContent = 'Sign In';
-            switchText.textContent = "Don't have an account?";
-            switchBtn.textContent = 'Sign Up';
-        }
-    }
-
-    // ── Open/close modal ──
+    // ── Modal open/close ──
     function openModal() {
         modal.classList.add('open');
         errorEl.textContent = '';
-        setTimeout(function () { emailInput.focus(); }, 100);
     }
     function closeModal() {
         modal.classList.remove('open');
@@ -137,7 +120,6 @@
                 + 'Sign Out</button>';
         }
 
-        // Bind chip click
         var chip = document.getElementById('auth-user-chip');
         var dropdown = document.getElementById('auth-user-dropdown');
         if (chip && dropdown) {
@@ -147,13 +129,11 @@
             });
         }
 
-        // Bind logout
         var logoutBtn = document.getElementById('auth-logout-btn');
         var logoutBtnMobile = document.getElementById('auth-logout-btn-mobile');
         if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
         if (logoutBtnMobile) logoutBtnMobile.addEventListener('click', doLogout);
 
-        // Close dropdown on outside click
         document.addEventListener('click', function () {
             var dd = document.getElementById('auth-user-dropdown');
             if (dd) dd.classList.remove('open');
@@ -162,7 +142,6 @@
 
     function showLoggedOut() {
         currentUser = null;
-        // Restore Account button if wrapper exists
         var wrapper = document.getElementById('account-wrapper');
         if (wrapper) {
             wrapper.outerHTML = '<button class="btn btn-sm btn-ghost" id="account-btn" aria-label="Account">'
@@ -174,20 +153,20 @@
 
     // ── Logout ──
     function doLogout() {
-        if (firebaseAuth) {
-            firebaseAuth.signOut().catch(function () {});
-        }
+        if (firebaseAuth) firebaseAuth.signOut().catch(function () {});
         fetch('/auth/logout/', {
             method: 'POST',
             headers: { 'X-CSRFToken': getCSRFToken() }
         }).then(function () {
             showLoggedOut();
+            showToast('Signed out successfully');
         });
     }
 
     // ── Google sign-in ──
     function doGoogleLogin() {
         if (!firebaseAuth) { showError('Firebase not initialized'); return; }
+        errorEl.textContent = '';
         var provider = new firebase.auth.GoogleAuthProvider();
         firebaseAuth.signInWithPopup(provider)
             .then(function (result) {
@@ -200,58 +179,15 @@
                 if (data.status === 'ok') {
                     closeModal();
                     showLoggedIn(data.user);
+                    showToast('Welcome, ' + (data.user.displayName || data.user.email || 'User') + '!');
                 } else {
                     showError(data.error || 'Login failed');
                 }
             })
             .catch(function (err) {
+                if (err.code === 'auth/popup-closed-by-user') return;
+                if (err.code === 'auth/cancelled-popup-request') return;
                 showError(err.message || 'Google sign-in failed');
-            });
-    }
-
-    // ── Email sign-in/up ──
-    function doEmailAuth(e) {
-        e.preventDefault();
-        errorEl.textContent = '';
-        var email = emailInput.value.trim();
-        var password = passwordInput.value;
-
-        if (!firebaseAuth) { showError('Firebase not initialized'); return; }
-
-        submitBtn.disabled = true;
-        submitBtn.textContent = isSignup ? 'Creating…' : 'Signing in…';
-
-        var authPromise = isSignup
-            ? firebaseAuth.createUserWithEmailAndPassword(email, password)
-            : firebaseAuth.signInWithEmailAndPassword(email, password);
-
-        authPromise
-            .then(function (result) {
-                return result.user.getIdToken();
-            })
-            .then(function (idToken) {
-                return sendToDjango(idToken);
-            })
-            .then(function (data) {
-                submitBtn.disabled = false;
-                if (data.status === 'ok') {
-                    closeModal();
-                    showLoggedIn(data.user);
-                } else {
-                    showError(data.error || 'Login failed');
-                    submitBtn.textContent = isSignup ? 'Create Account' : 'Sign In';
-                }
-            })
-            .catch(function (err) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = isSignup ? 'Create Account' : 'Sign In';
-                var msg = err.message || 'Authentication failed';
-                if (msg.includes('auth/user-not-found')) msg = 'No account found with this email.';
-                else if (msg.includes('auth/wrong-password')) msg = 'Incorrect password.';
-                else if (msg.includes('auth/email-already-in-use')) msg = 'An account already exists with this email.';
-                else if (msg.includes('auth/weak-password')) msg = 'Password must be at least 6 characters.';
-                else if (msg.includes('auth/invalid-email')) msg = 'Invalid email address.';
-                showError(msg);
             });
     }
 
@@ -260,9 +196,7 @@
         fetch('/auth/user/')
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (data.authenticated) {
-                    showLoggedIn(data.user);
-                }
+                if (data.authenticated) showLoggedIn(data.user);
             });
     }
 
@@ -271,23 +205,13 @@
         if (accountBtn) accountBtn.addEventListener('click', openModal);
         if (accountBtnMobile) accountBtnMobile.addEventListener('click', openModal);
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
-        if (modal) {
-            modal.addEventListener('click', function (e) {
-                if (e.target === modal) closeModal();
-            });
-        }
+        if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
         if (googleBtn) googleBtn.addEventListener('click', doGoogleLogin);
-        if (emailForm) emailForm.addEventListener('submit', doEmailAuth);
-        if (switchBtn) switchBtn.addEventListener('click', toggleMode);
-
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && modal && modal.classList.contains('open')) {
-                closeModal();
-            }
+            if (e.key === 'Escape' && modal && modal.classList.contains('open')) closeModal();
         });
     }
 
-    // ── Init ──
     initFirebase();
     bind();
     checkAuthState();
