@@ -220,8 +220,18 @@
     }
 
     async function generateAllBatch() {
-        var pending = state.items.filter(function (i) { return (i.status === 'idle' || i.status === 'error' || i.status === 'preview_ready') && i.base64Data; });
-        if (pending.length === 0) { MMUI.showToast('Info', 'No files to process', 'info'); return; }
+        var checkedBoxes = document.querySelectorAll('.mm-batch-check:checked');
+        var checkedIndices = Array.from(checkedBoxes).map(function (cb) { return parseInt(cb.dataset.idx); });
+
+        var pending;
+        if (checkedIndices.length > 0) {
+            pending = state.items.filter(function (item, idx) {
+                return checkedIndices.indexOf(idx) !== -1 && (item.status === 'idle' || item.status === 'error' || item.status === 'preview_ready') && item.base64Data;
+            });
+        } else {
+            pending = state.items.filter(function (i) { return (i.status === 'idle' || i.status === 'error' || i.status === 'preview_ready') && i.base64Data; });
+        }
+        if (pending.length === 0) { MMUI.showToast('Info', checkedIndices.length > 0 ? 'Selected files already processed or no artwork' : 'No files to process', 'info'); return; }
 
         var progressEl = $('mm-progress');
         var fillEl = $('mm-progress-fill');
@@ -334,6 +344,13 @@
     }
 
     function bindBatchViewEvents() {
+        var checkAll = $('mm-check-all');
+        if (checkAll) {
+            checkAll.addEventListener('change', function () {
+                document.querySelectorAll('.mm-batch-check').forEach(function (cb) { cb.checked = checkAll.checked; });
+            });
+        }
+
         document.querySelectorAll('.mm-table tbody tr').forEach(function (row) {
             row.addEventListener('click', function (e) {
                 if (e.target.closest('.mm-batch-check') || e.target.closest('button')) return;

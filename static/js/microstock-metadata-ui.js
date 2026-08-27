@@ -173,7 +173,7 @@ window.MMUI = (function () {
             '<button class="mm-header-btn" id="mm-batch-export-json">JSON</button>' +
             '<button class="mm-header-btn" id="mm-batch-clear">Clear All</button>' +
             '</div></div>' +
-            '<table class="mm-table"><thead><tr><th></th><th>Preview</th><th>Filename</th><th>Title</th><th>Keywords</th><th>Status</th><th></th></tr></thead><tbody>' +
+            '<table class="mm-table"><thead><tr><th><input type="checkbox" id="mm-check-all" title="Select all"></th><th>Preview</th><th>Filename</th><th>Title</th><th>Keywords</th><th>Status</th><th></th></tr></thead><tbody>' +
             items.map(function (item, idx) {
                 var statusClass = item.status === 'completed' ? 'done' : item.status === 'analyzing' ? 'analyzing' : item.status === 'error' ? 'failed' : 'ready';
                 return '<tr data-idx="' + idx + '">' +
