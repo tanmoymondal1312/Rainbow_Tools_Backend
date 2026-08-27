@@ -124,7 +124,6 @@
 
         if (file.name.toLowerCase().endsWith('.eps')) {
             item.status = 'rendering_eps';
-            updateView();
             try {
                 var b64 = await readFileAsBase64(file);
                 var res = await fetch('/microstock-metadata/api/render-eps/', {
@@ -491,26 +490,32 @@
 
     async function handleFiles(files) {
         if (!files || files.length === 0) return;
-        $('mm-progress').style.display = '';
-        $('mm-progress-fill').style.width = '0%';
-        $('mm-progress-text').textContent = 'Processing files...';
+        try {
+            $('mm-progress').style.display = '';
+            $('mm-progress-fill').style.width = '0%';
+            $('mm-progress-text').textContent = 'Processing files...';
 
-        for (var i = 0; i < files.length; i++) {
-            var pct = (i / files.length) * 100;
-            $('mm-progress-fill').style.width = pct + '%';
-            $('mm-progress-text').textContent = 'Processing ' + (i + 1) + '/' + files.length + ': ' + files[i].name;
-            var item = await processFile(files[i]);
-            state.items.push(item);
-            if (files.length === 1 && item.status !== 'error') {
-                state.selectedItem = item;
+            for (var i = 0; i < files.length; i++) {
+                var pct = (i / files.length) * 100;
+                $('mm-progress-fill').style.width = pct + '%';
+                $('mm-progress-text').textContent = 'Processing ' + (i + 1) + '/' + files.length + ': ' + files[i].name;
+                var item = await processFile(files[i]);
+                state.items.push(item);
+                if (files.length === 1 && item.status !== 'error') {
+                    state.selectedItem = item;
+                }
             }
-        }
 
-        $('mm-progress').style.display = 'none';
+            $('mm-progress').style.display = 'none';
 
-        if (state.items.length === 1 && state.selectedItem && state.selectedItem.status !== 'error') {
-            generateSingle(state.selectedItem);
-        } else {
+            if (state.items.length === 1 && state.selectedItem && state.selectedItem.status !== 'error') {
+                generateSingle(state.selectedItem);
+            } else {
+                updateView();
+            }
+        } catch (e) {
+            console.error('[MM] handleFiles error:', e);
+            $('mm-progress').style.display = 'none';
             updateView();
         }
     }
