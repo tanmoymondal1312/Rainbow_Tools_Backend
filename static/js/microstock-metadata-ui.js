@@ -173,7 +173,7 @@ window.MMUI = (function () {
             '<button class="mm-header-btn" id="mm-batch-export-json">JSON</button>' +
             '<button class="mm-header-btn" id="mm-batch-clear">Clear All</button>' +
             '</div></div>' +
-            '<table class="mm-table"><thead><tr><th></th><th>Preview</th><th>Filename</th><th>Title</th><th>Keywords</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+            '<table class="mm-table"><thead><tr><th></th><th>Preview</th><th>Filename</th><th>Title</th><th>Keywords</th><th>Status</th><th></th></tr></thead><tbody>' +
             items.map(function (item, idx) {
                 var statusClass = item.status === 'completed' ? 'done' : item.status === 'analyzing' ? 'analyzing' : item.status === 'error' ? 'failed' : 'ready';
                 return '<tr data-idx="' + idx + '">' +
@@ -183,7 +183,7 @@ window.MMUI = (function () {
                     '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(item.title || '—') + '</td>' +
                     '<td>' + (item.keywords ? item.keywords.length : 0) + '</td>' +
                     '<td><span class="mm-status-badge ' + statusClass + '">' + (item.status === 'completed' ? 'Done' : item.status === 'analyzing' ? 'Analyzing...' : item.status === 'error' ? 'Failed' : 'Ready') + '</span></td>' +
-                    '<td><button class="mm-field-btn" data-action="inspect" data-idx="' + idx + '">Inspect</button></td></tr>';
+                    '<td class="mm-view-hint">View →</td></tr>';
             }).join('') +
             '</tbody></table>';
 

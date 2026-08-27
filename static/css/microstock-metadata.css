@@ -750,13 +750,22 @@
 }
 
 .mm-table td {
-    padding: 0.5rem 0.6rem;
+    padding: 0.6rem;
     border-bottom: 1px solid var(--mm-border);
     vertical-align: middle;
 }
 
-.mm-table tr:hover td {
-    background: color-mix(in srgb, var(--mm-accent) 3%, transparent);
+.mm-table tbody tr {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.mm-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--mm-accent) 5%, transparent);
+}
+
+.mm-table tbody tr:active td {
+    background: color-mix(in srgb, var(--mm-accent) 10%, transparent);
 }
 
 .mm-table-thumb {
@@ -765,6 +774,17 @@
     border-radius: 6px;
     object-fit: cover;
     background: var(--mm-bg);
+}
+
+.mm-table .mm-view-hint {
+    font-size: 0.68rem;
+    color: var(--mm-accent);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.mm-table tbody tr:hover .mm-view-hint {
+    opacity: 1;
 }
 
 .mm-status-badge {

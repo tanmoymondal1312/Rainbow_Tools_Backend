@@ -334,9 +334,10 @@
     }
 
     function bindBatchViewEvents() {
-        document.querySelectorAll('[data-action="inspect"]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var idx = parseInt(btn.dataset.idx);
+        document.querySelectorAll('.mm-table tbody tr').forEach(function (row) {
+            row.addEventListener('click', function (e) {
+                if (e.target.closest('.mm-batch-check') || e.target.closest('button')) return;
+                var idx = parseInt(row.dataset.idx);
                 state.selectedItem = state.items[idx];
                 state.view = 'detail';
                 updateView();
