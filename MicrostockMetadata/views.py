@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -197,9 +198,6 @@ def _post_process_metadata(parsed):
     is_valid, issues = validate_metadata_complete(validation_item)
 
     return parsed, is_valid, issues
-
-
-import re
 
 
 @csrf_exempt
