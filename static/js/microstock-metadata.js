@@ -23,6 +23,26 @@
 
     function $(id) { return document.getElementById(id); }
 
+    function _validateItemForReady(item) {
+        if (!item || item.status === 'error') return false;
+        if (!item.base64Data) return false;
+        if (!item.title || item.title.trim().length < 3) return false;
+        if (!item.description || item.description.trim().length < 10) return false;
+        if (!item.keywords || !Array.isArray(item.keywords) || item.keywords.length === 0) return false;
+        if (!item.primaryCategory) return false;
+        return true;
+    }
+
+    function _markReady(item) {
+        if (_validateItemForReady(item)) {
+            item.status = 'completed';
+        } else {
+            item.status = 'error';
+            if (!item.errorMessage) item.errorMessage = 'Metadata validation failed: incomplete fields';
+        }
+        return item;
+    }
+
     function updateView() {
         var uploadView = $('mm-upload-view');
         var detailView = $('mm-detail-view');
@@ -69,6 +89,13 @@
         }
     }
 
+    function _findItemById(id) {
+        for (var i = 0; i < state.items.length; i++) {
+            if (state.items[i].id === id) return state.items[i];
+        }
+        return null;
+    }
+
     function handlePlatformChange() {
         if (!state.selectedItem || !state.selectedItem.analysis) return;
         var adapted = MMUI.adaptMetadataForPlatform(
@@ -92,7 +119,7 @@
             contentType: '', visualStyle: '', dominantColors: [], backgroundType: 'Transparent',
             mainSubject: '', confidence: 90, qualityScore: null, validation: null,
             apiError: null, errorMessage: null, promptResult: null,
-            technicalDetails: null,
+            technicalDetails: null, generationVersion: 0,
         };
 
         if (file.name.toLowerCase().endsWith('.eps')) {
@@ -179,9 +206,15 @@
         item.status = 'analyzing';
         updateView();
         var result = await MMGeminiService.analyzeArtwork(item, state.settings, state.platform, false);
-        var idx = state.items.findIndex(function (i) { return i.id === item.id; });
-        if (idx >= 0) state.items[idx] = result.item;
-        if (state.selectedItem && state.selectedItem.id === item.id) state.selectedItem = result.item;
+        // Update by ID, not by reference
+        var target = _findItemById(result.item.id);
+        if (target) {
+            Object.assign(target, result.item);
+            _markReady(target);
+        }
+        if (state.selectedItem && state.selectedItem.id === item.id) {
+            state.selectedItem = target || result.item;
+        }
         if (result.success) { MMUI.showToast('Done', result.fromCache ? 'Loaded from cache' : 'AI analysis complete', 'success'); }
         else { MMUI.showToast('Error', result.error ? result.error.userMessage : 'Analysis failed', 'error'); }
         updateView();
@@ -205,10 +238,16 @@
                 textEl.textContent = p.completed + '/' + p.total + ' completed' + (p.rateLimitWaiting ? ' (rate limit cooldown...)' : '') + (p.isPaused ? ' (paused)' : '');
                 if (p.rateLimitWaiting) $('mm-rate-limit').style.display = ''; else $('mm-rate-limit').style.display = 'none';
             },
-            onItemUpdated: function (item) {
-                var idx = state.items.findIndex(function (i) { return i.id === item.id; });
-                if (idx >= 0) state.items[idx] = item;
-                if (state.selectedItem && state.selectedItem.id === item.id) state.selectedItem = item;
+            onItemUpdated: function (updatedItem) {
+                // Update by ID — never by index
+                var target = _findItemById(updatedItem.id);
+                if (target) {
+                    Object.assign(target, updatedItem);
+                    _markReady(target);
+                }
+                if (state.selectedItem && state.selectedItem.id === updatedItem.id) {
+                    state.selectedItem = target || updatedItem;
+                }
                 updateView();
             },
             onBatchComplete: function () {

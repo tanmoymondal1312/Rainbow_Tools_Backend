@@ -32,12 +32,22 @@ window.MMGeminiService = (function () {
         return { userMessage: 'AI generation failed.', reason: 'Model could not complete metadata generation.', errorCode: code, statusCode: statusCode || 500, technicalDetails: details, canRetry: true };
     }
 
-    async function analyzeArtwork(item, settings, platform, forceFresh) {
+    function _validateMetadata(meta) {
+        if (!meta) return { valid: false, reason: 'No metadata returned' };
+        if (!meta.title || meta.title.trim().length < 3) return { valid: false, reason: 'Title is empty or too short' };
+        if (!meta.description || meta.description.trim().length < 10) return { valid: false, reason: 'Description is empty or too short' };
+        if (!meta.keywords || !Array.isArray(meta.keywords) || meta.keywords.length === 0) return { valid: false, reason: 'No keywords' };
+        if (!meta.category) return { valid: false, reason: 'Missing category' };
+        return { valid: true };
+    }
+
+    async function analyzeArtwork(item, settings, platform, forceFresh, generationVersion) {
         if (!item.base64Data) {
             var err = { userMessage: 'No artwork preview available.', errorCode: 'PREVIEW_MISSING', canRetry: false };
             return { success: false, item: Object.assign({}, item, { status: 'error', errorMessage: err.userMessage, apiError: err }), error: err };
         }
 
+        // Client-side cache check
         if (!forceFresh && item.fileHash && MMCache.has(item.fileHash)) {
             var cached = MMCache.get(item.fileHash);
             var adapted = MMUI.adaptMetadataForPlatform(cached.analysis, cached.metadata, platform, settings);
@@ -81,21 +91,35 @@ window.MMGeminiService = (function () {
                 }
                 var data = await res.json();
                 var analysisData = data.analysis || data.visual_analysis || {
-                    main_subject: 'Artwork', objects: [], visible_text: [], style: 'Vector Graphic',
+                    main_subject: 'Artwork', objects: [], visible_text: [], style: 'Graphic',
                     theme: 'Design', colors: [], background: 'Transparent', composition: 'Centered',
                     content_type: 'Vector', confidence: 90,
                 };
-                if (item.fileHash) MMCache.set(item.fileHash, analysisData, data.metadata);
-                var adapted2 = MMUI.adaptMetadataForPlatform(analysisData, data.metadata, platform, settings);
+
+                // Use AI-generated keywords as primary source — do NOT rebuild from analysis
+                var aiMetadata = data.metadata || {};
+                var adapted2 = MMUI.adaptMetadataForPlatform(analysisData, aiMetadata, platform, settings);
+
+                // Validate metadata completeness
+                var metaValidation = _validateMetadata(adapted2);
+                if (!metaValidation.valid) {
+                    var ve = new Error('Metadata validation failed: ' + metaValidation.reason);
+                    ve.errorCode = 'METADATA_INVALID';
+                    throw ve;
+                }
+
+                // Cache the raw AI response
+                if (item.fileHash) MMCache.set(item.fileHash, analysisData, aiMetadata);
+
                 return {
                     success: true,
                     item: Object.assign({}, item, {
                         analysis: analysisData, confidence: analysisData.confidence || 90,
                         title: adapted2.title, description: adapted2.description, keywords: adapted2.keywords,
-                        primaryCategory: adapted2.primaryCategory || data.metadata.category || 'Graphic Resources',
-                        secondaryCategory: adapted2.secondaryCategory || data.metadata.secondary_category || 'Design',
+                        primaryCategory: adapted2.primaryCategory || aiMetadata.category || 'Graphic Resources',
+                        secondaryCategory: adapted2.secondaryCategory || aiMetadata.secondary_category || 'Design',
                         contentType: analysisData.content_type || 'Vector',
-                        visualStyle: analysisData.style || 'Vector Graphic',
+                        visualStyle: analysisData.style || 'Graphic',
                         dominantColors: analysisData.colors || [],
                         backgroundType: analysisData.background || 'Transparent',
                         mainSubject: analysisData.main_subject || 'Artwork',
@@ -145,6 +169,7 @@ window.MMQueue = (function () {
     var totalCount = 0, completedCount = 0, failedCount = 0;
     var settings = {}, platform = 'adobe-stock';
     var onProgress, onItemUpdated, onBatchComplete;
+    var generationVersionCounter = 0;
 
     function getProgress() {
         return { total: totalCount, completed: completedCount, processing: activeCount, pending: queue.length, failed: failedCount, isPaused: isPaused, isProcessing: isProcessing, rateLimitWaiting: rateLimitWaiting };
@@ -163,11 +188,20 @@ window.MMQueue = (function () {
 
     async function processItem(item) {
         if (isCancelled) { activeCount--; return; }
+        generationVersionCounter++;
+        var myVersion = generationVersionCounter;
+        item.generationVersion = myVersion;
         if (onItemUpdated) onItemUpdated(Object.assign({}, item, { status: 'analyzing', statusMessage: 'AI Vision Analysis...' }));
         emitProgress();
         try {
-            var result = await MMGeminiService.analyzeArtwork(item, settings, platform, false);
+            var result = await MMGeminiService.analyzeArtwork(item, settings, platform, false, myVersion);
             if (isCancelled) { activeCount--; return; }
+            // Version check: if a newer generation started, ignore this result
+            if (result.item && result.item.generationVersion && result.item.generationVersion < myVersion) {
+                activeCount--;
+                pump();
+                return;
+            }
             if (result.success) { completedCount++; } else { failedCount++; if (result.error && result.error.statusCode === 429) handleRateLimit(); }
             if (onItemUpdated) onItemUpdated(result.item);
         } catch (e) {
@@ -211,33 +245,82 @@ window.MMExport = (function () {
         var link = document.createElement('a'); link.href = url; link.download = filename;
         document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
     }
-    function escapeCsv(val) {
-        if (val == null) return '""';
+
+    function escapeCsvField(val) {
+        if (val == null) return '';
         var s = String(val);
-        if (s.includes('"') || s.includes(',') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+        // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+        if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
         return '"' + s + '"';
     }
+
     return {
         toCsv: function (items, filename) {
             if (!items || !items.length) return;
-            var headers = ['Filename', 'File Type', 'Title', 'Description', 'Keywords', 'Category', 'Secondary Category', 'Content Type', 'Style', 'Colors', 'Orientation', 'Background'];
-            var rows = items.map(function (item) {
-                return [escapeCsv(item.fileName), escapeCsv(item.fileType), escapeCsv(item.title), escapeCsv(item.description),
-                escapeCsv(item.keywords ? item.keywords.join(', ') : ''), escapeCsv(item.primaryCategory), escapeCsv(item.secondaryCategory),
-                escapeCsv(item.contentType), escapeCsv(item.visualStyle), escapeCsv(item.dominantColors ? item.dominantColors.join(', ') : ''),
-                escapeCsv(item.technicalDetails ? item.technicalDetails.orientation : 'Landscape'), escapeCsv(item.backgroundType || 'Isolated')];
+
+            // Only export items that are READY (completed with valid metadata)
+            var readyItems = items.filter(function (item) {
+                return item.status === 'completed' &&
+                    item.title && item.title.trim().length > 0 &&
+                    item.description && item.description.trim().length > 0 &&
+                    item.keywords && Array.isArray(item.keywords) && item.keywords.length > 0;
             });
-            downloadBlob([headers.join(',')].concat(rows.map(function (r) { return r.join(','); })).join('\r\n'), filename || 'microstock_metadata.csv', 'text/csv;charset=utf-8;');
+
+            if (readyItems.length === 0) {
+                MMUI.showToast('Export', 'No completed metadata to export', 'error');
+                return;
+            }
+
+            var excludedCount = items.length - readyItems.length;
+            if (excludedCount > 0) {
+                MMUI.showToast('Export', excludedCount + ' file(s) excluded (incomplete/failed)', 'info');
+            }
+
+            var headers = ['Filename', 'Title', 'Description', 'Keywords', 'Category', 'Secondary Category'];
+            var rows = readyItems.map(function (item) {
+                var kwString = Array.isArray(item.keywords) ? item.keywords.join(', ') : '';
+                return [
+                    escapeCsvField(item.fileName),
+                    escapeCsvField(item.title),
+                    escapeCsvField(item.description),
+                    escapeCsvField(kwString),
+                    escapeCsvField(item.primaryCategory || ''),
+                    escapeCsvField(item.secondaryCategory || ''),
+                ].join(',');
+            });
+
+            var csvContent = headers.join(',') + '\r\n' + rows.join('\r\n');
+            downloadBlob(csvContent, filename || 'microstock_metadata.csv', 'text/csv;charset=utf-8;');
+            MMUI.showToast('Export', readyItems.length + ' file(s) exported as CSV', 'success');
         },
         toJson: function (items, filename) {
             if (!items || !items.length) return;
-            var data = items.map(function (item) {
-                return { filename: item.fileName, fileType: item.fileType, title: item.title || '', description: item.description || '',
-                    keywords: item.keywords || [], category: item.primaryCategory || '', secondaryCategory: item.secondaryCategory || '',
-                    contentType: item.contentType || '', style: item.visualStyle || '', colors: item.dominantColors || [],
-                    orientation: item.technicalDetails ? item.technicalDetails.orientation : 'Landscape', background: item.backgroundType || 'Isolated' };
+
+            var readyItems = items.filter(function (item) {
+                return item.status === 'completed' &&
+                    item.title && item.title.trim().length > 0 &&
+                    item.keywords && Array.isArray(item.keywords) && item.keywords.length > 0;
+            });
+
+            if (readyItems.length === 0) {
+                MMUI.showToast('Export', 'No completed metadata to export', 'error');
+                return;
+            }
+
+            var data = readyItems.map(function (item) {
+                return {
+                    filename: item.fileName,
+                    title: item.title || '',
+                    description: item.description || '',
+                    keywords: item.keywords || [],
+                    category: item.primaryCategory || '',
+                    secondaryCategory: item.secondaryCategory || '',
+                };
             });
             downloadBlob(JSON.stringify(data, null, 2), filename || 'microstock_metadata.json', 'application/json;charset=utf-8;');
+            MMUI.showToast('Export', readyItems.length + ' file(s) exported as JSON', 'success');
         },
     };
 })();

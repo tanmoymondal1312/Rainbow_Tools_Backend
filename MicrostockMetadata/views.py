@@ -14,7 +14,12 @@ from .gemini_client import (
 )
 from .eps_renderer import render_eps_to_png
 from .platforms import PLATFORMS
-from .validation import adapt_metadata_for_platform
+from .validation import (
+    adapt_metadata_for_platform,
+    sanitize_and_validate_metadata,
+    normalize_keywords,
+    validate_metadata_complete,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +32,18 @@ GENAI_SCHEMA = {
                 'type': 'object',
                 'properties': {
                     'main_subject': {'type': 'string', 'description': 'The single most important core subject visibly present in the artwork'},
+                    'secondary_subjects': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Other notable subjects visible but secondary to the main subject'},
                     'objects': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Inventory of all major and secondary visible objects'},
+                    'actions': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Actions or activities visibly occurring'},
+                    'environment': {'type': 'string', 'description': 'Inferable environment or location based ONLY on visible evidence'},
                     'visible_text': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Exact text visibly printed/drawn in the artwork'},
                     'style': {'type': 'string', 'description': 'Artistic and visual style'},
                     'theme': {'type': 'string', 'description': 'Theme or conceptual context'},
                     'colors': {'type': 'array', 'items': {'type': 'string'}, 'description': 'List of dominant visible colors'},
                     'background': {'type': 'string', 'description': 'Background description'},
                     'composition': {'type': 'string', 'description': 'Composition layout'},
+                    'perspective': {'type': 'string', 'description': 'Camera angle or perspective'},
+                    'lighting': {'type': 'string', 'description': 'Lighting characteristics'},
                     'content_type': {'type': 'string', 'description': 'Content type classification'},
                     'confidence': {'type': 'integer', 'description': 'Visual recognition confidence percentage (0 to 100)'},
                 },
@@ -42,9 +52,9 @@ GENAI_SCHEMA = {
             'metadata': {
                 'type': 'object',
                 'properties': {
-                    'title': {'type': 'string', 'description': 'Microstock SEO title'},
-                    'description': {'type': 'string', 'description': 'Commercial microstock description'},
-                    'keywords': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Strictly prioritized keywords'},
+                    'title': {'type': 'string', 'description': 'SEO-optimized stock title describing the actual visible subject'},
+                    'description': {'type': 'string', 'description': 'Complete commercial stock description of the visible content'},
+                    'keywords': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Relevance-ranked keywords, strongest first'},
                     'category': {'type': 'string', 'description': 'Primary microstock category'},
                     'secondary_category': {'type': 'string', 'description': 'Secondary related microstock category'},
                 },
@@ -88,36 +98,108 @@ def _build_system_instruction(settings):
 
     return f"""You are a professional microstock metadata visual analyst and commercial taxonomist.
 
-CRITICAL DIRECTIVES:
-1. TWO-STAGE ANALYSIS ARCHITECTURE:
-   - STAGE 1 (VISUAL INSPECTION): First, execute a thorough, deep visual inspection of the rendered artwork. Inspect the main subject, every major visible object, secondary objects, shapes, characters, animals, plants, people, icons, symbols, typography, visible text, background, pattern, composition, dominant colors, artistic style, theme, concept, and intended visual purpose. Assess your visual analysis confidence (0-100).
-   - STAGE 2 (METADATA GENERATION): Derive all title, description, category, and keyword metadata EXCLUSIVELY from the STAGE 1 visual inspection inventory.
+═══ CRITICAL DIRECTIVES ═══
 
-2. NEVER GUESS OR HALLUCINATE:
-   - Base all analysis strictly on what is visibly present in the pixels.
-   - Do NOT use or infer from the filename.
-   - If visual evidence is ambiguous, DO NOT guess. Omit uncertain elements. Accuracy is paramount over volume.
+1. TWO-STAGE ANALYSIS ARCHITECTURE:
+   - STAGE 1 (VISUAL INSPECTION): Perform an exhaustive, pixel-based visual inspection. Identify the main subject, secondary subjects, every clearly visible object, people characteristics (if visible), animals (if visible), actions, environment (if inferable from visible evidence only), visible text (OCR), artistic style, theme, dominant colors, background, composition, perspective, lighting, and content type. Assess confidence (0-100). DO NOT infer objects not visibly present.
+   - STAGE 2 (METADATA GENERATION): Generate title, description, keywords, and categories EXCLUSIVELY from the Stage 1 visual inventory. Every piece of metadata must be traceable to something visibly observed.
+
+2. ABSOLUTE ANTI-HALLUCINATION RULES:
+   - Base ALL analysis strictly on what is visibly present in the pixels.
+   - NEVER use the filename as evidence of content.
+   - NEVER infer scenes from objects (e.g., do NOT add "office worker" just because a laptop is visible; do NOT add "coffee shop" just because a cup is visible).
+   - NEVER invent brand names, company names, copyrighted characters, celebrity names, artist names, or trademarked terms.
+   - NEVER invent locations, events, or actions not visibly supported.
+   - If visual evidence is ambiguous, DO NOT guess. Omit uncertain elements.
+   - Accuracy is paramount over volume. Fewer accurate keywords are better than many hallucinated ones.
 
 3. VISIBLE TEXT & OCR:
-   - Read actual visible text verbatim. If no readable text is present, visible_text MUST be empty [].
+   - Read actual visible text verbatim.
+   - If no readable text is present, visible_text MUST be empty [].
    - If placeholder text like "YOUR TEXT", "LOREM IPSUM", or "SAMPLE TEXT" appears, note it but DO NOT treat it as the artwork's subject.
 
 4. TITLE SPECIFICATION:
-   - The title MUST start with or strongly focus on the single most important visual subject.
+   - Structure: [Primary Subject] + [Specific Context/Action/Appearance] + [Relevant Visual Context]
    - Length: {min_title} to {max_title} words.
-   - STRICTLY FORBIDDEN: Do NOT start titles with generic boilerplate like "EPS", "Vector", "Artwork", "Graphic", "Template", "Design", or "Illustration" unless that is genuinely the visible subject.
+   - The title MUST start with the most important visible subject.
+   - MUST be specific enough for stock image search.
+   - MUST be natural human-readable English.
+   - NEVER start with: "EPS", "Vector", "Artwork", "Graphic", "Template", "Design", "Illustration", "Beautiful", "Amazing", "Creative", "Professional", "High Quality" — unless genuinely necessary to describe the subject.
+   - For a red apple: "Red Apple Isolated on White Background" (NOT "Beautiful Fruit Illustration")
 
 5. DESCRIPTION SPECIFICATION:
    - Length: {min_desc} to {max_desc} words.
-   - Provide an accurate description of what is actually visible.
+   - Describe what is ACTUALLY visible in the image.
+   - Mention the primary subject, important visible context, and relevant searchable concepts.
+   - Be commercially useful for stock marketplaces.
+   - Avoid keyword stuffing.
+   - Never produce generic filler like "High quality image suitable for various purposes."
 
-6. KEYWORD SPECIFICATION & STRICT RANKING:
-   - Do NOT force-fill keywords with irrelevant fluff. Generate only visually supported, highly relevant terms.
-   - Maximum {max_kw} keywords. If only 18-25 highly accurate keywords exist, return only those.
-   - The first 10 keywords MUST be the absolute strongest search terms.
-   - {"Prioritize strong single-word keywords where appropriate, but allow meaningful multi-word phrases if essential." if single_word else "Multi-word phrases and single words are both permitted where natural."}
-   {"- STRICTLY PROHIBITED WORDS (Do not use): [" + prohibited + "]." if prohibited else ""}
-   {"- Commercial Focus Directive: \"" + custom_prompt + "\" (apply strictly to visually supported elements)." if custom_prompt else ""}"""
+6. KEYWORD SPECIFICATION & STRICT RELEVANCE RANKING:
+   - Generate keywords ranked by search relevance — STRONGEST FIRST.
+   - Relevance hierarchy: (1) Primary subject, (2) Key objects, (3) Subject characteristics, (4) Action/activity, (5) Environment, (6) Theme/concept, (7) Style, (8) Composition, (9) Visual characteristics, (10) Supporting terms.
+   - Maximum {max_kw} keywords. If only 15-25 genuinely accurate keywords exist, return only those. Do NOT pad with generic filler.
+   - {"Prioritize single-word keywords where meaningful, but keep essential multi-word phrases." if single_word else "Multi-word phrases and single words are both permitted where natural."}
+   - NEVER include keywords not supported by the visual content.
+   - {"PROHIBITED WORDS (never use these): [" + prohibited + "]." if prohibited else ""}
+   {"- CUSTOM INSTRUCTION: \"" + custom_prompt + "\" (apply strictly to visually supported elements only)." if custom_prompt else ""}
+
+═══ OUTPUT FORMAT ═══
+
+Return JSON with:
+- "analysis": the complete visual inventory from Stage 1
+- "metadata": stock metadata generated strictly from the visual inventory
+
+The metadata keywords MUST be ranked by search relevance, NOT alphabetically."""
+
+
+def _post_process_metadata(parsed):
+    """
+    Post-process AI response: normalize keywords, validate, ensure consistency.
+    Returns (processed_dict, is_valid, issues).
+    """
+    analysis = parsed.get('analysis') or parsed.get('visual_analysis') or {}
+    metadata = parsed.get('metadata', {})
+
+    # Ensure analysis aliases
+    if 'analysis' in parsed and not parsed.get('visual_analysis'):
+        parsed['visual_analysis'] = parsed['analysis']
+    elif 'visual_analysis' in parsed and not parsed.get('analysis'):
+        parsed['analysis'] = parsed['visual_analysis']
+
+    # Normalize keywords
+    raw_keywords = metadata.get('keywords', [])
+    if isinstance(raw_keywords, list):
+        normalized = normalize_keywords(raw_keywords, {'singleWordKeywords': True}, 49)
+        metadata['keywords'] = normalized
+
+    # Clean title
+    title = (metadata.get('title') or '').strip()
+    title = re.sub(r'\s+', ' ', title)
+    metadata['title'] = title
+
+    # Clean description
+    desc = (metadata.get('description') or '').strip()
+    desc = re.sub(r'\s+', ' ', desc)
+    metadata['description'] = desc
+
+    parsed['analysis'] = analysis
+    parsed['metadata'] = metadata
+
+    # Validate completeness
+    validation_item = {
+        'fileName': '_ai_response_',
+        'title': title,
+        'description': desc,
+        'keywords': metadata.get('keywords', []),
+        'primaryCategory': metadata.get('category', ''),
+    }
+    is_valid, issues = validate_metadata_complete(validation_item)
+
+    return parsed, is_valid, issues
+
+
+import re
 
 
 @csrf_exempt
@@ -151,9 +233,19 @@ async def analyze_metadata(request):
         return JsonResponse({'error': str(e)}, status=500)
 
     system_instruction = _build_system_instruction(settings)
-    user_prompt = """Perform a deep 2-stage visual analysis of this rendered artwork preview.
-STAGE 1: Create an exhaustive visual inventory of visible subjects, objects, text, style, colors, and background.
-STAGE 2: Generate highly accurate, strictly ranked microstock metadata derived solely from your visual inventory."""
+    user_prompt = """Perform a deep 2-stage visual analysis of this rendered artwork.
+
+STAGE 1 — VISUAL INSPECTION:
+Exhaustively inventory every visible element: main subject, secondary subjects, all visible objects, people (if present), animals (if present), actions, environment (if inferable), visible text (OCR), artistic style, theme, dominant colors, background, composition, perspective, lighting, and content type. Assign a confidence percentage.
+
+STAGE 2 — METADATA GENERATION:
+From your Stage 1 visual inventory ONLY, generate:
+- A specific, searchable title (no generic prefixes)
+- A complete commercial description
+- Relevance-ranked keywords (strongest first, no hallucinated terms)
+- Primary and secondary categories
+
+CRITICAL: Do NOT invent objects, environments, brands, or concepts not visible in the image. Do NOT use the filename as evidence."""
 
     request_payload = {
         'model': GEMINI_MODEL,
@@ -176,14 +268,23 @@ STAGE 2: Generate highly accurate, strictly ranked microstock metadata derived s
             raise Exception('AI returned empty response.')
 
         parsed = json.loads(text_output)
-        if parsed.get('analysis') and not parsed.get('visual_analysis'):
-            parsed['visual_analysis'] = parsed['analysis']
-        elif parsed.get('visual_analysis') and not parsed.get('analysis'):
-            parsed['analysis'] = parsed['visual_analysis']
 
-        set_cached_analysis(cache_key, parsed)
-        return JsonResponse(parsed)
+        # Post-process: normalize, validate
+        processed, is_valid, issues = _post_process_metadata(parsed)
 
+        if not is_valid:
+            logger.warning(f'[AI Vision] Metadata validation issues for {file_name}: {issues}')
+
+        set_cached_analysis(cache_key, processed)
+        return JsonResponse(processed)
+
+    except json.JSONDecodeError as e:
+        logger.error(f'[AI Vision] Invalid JSON response: {e}')
+        return JsonResponse({
+            'error': 'AI returned invalid response format.',
+            'technicalDetails': str(e),
+            'canRetry': True,
+        }, status=500)
     except Exception as e:
         logger.error(f'[AI Vision Analysis Error]: {e}')
         classified = classify_ai_error(e)

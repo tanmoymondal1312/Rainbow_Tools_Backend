@@ -36,45 +36,70 @@ window.MMUI = (function () {
         });
     }
 
+    /**
+     * Adapt metadata for a specific platform.
+     * CRITICAL: Uses AI-generated keywords as the PRIMARY source.
+     * Only enforces platform limits — does NOT rebuild from analysis fields.
+     */
     function adaptMetadataForPlatform(analysis, baseMetadata, platformId, settings) {
         var pc = PLATFORMS[platformId] || PLATFORMS['adobe-stock'];
         var maxKw = Math.min(settings.maxKeywords || 49, pc.maxKeywords);
-        var raw = [];
-        if (analysis.main_subject) raw.push.apply(raw, analysis.main_subject.toLowerCase().split(/\s+/));
-        if (analysis.visible_text) analysis.visible_text.forEach(function (t) { raw.push.apply(raw, t.toLowerCase().split(/\s+/)); });
-        if (analysis.objects) raw.push.apply(raw, analysis.objects.map(function (o) { return o.toLowerCase(); }));
-        if (analysis.style) raw.push(analysis.style.toLowerCase());
-        if (analysis.content_type) raw.push(analysis.content_type.toLowerCase());
-        if (platformId === 'vecteezy' || (analysis.content_type && analysis.content_type.toLowerCase().includes('vector'))) {
-            raw.push('vector', 'illustration', 'graphic', 'eps', 'editable', 'design asset');
-        }
-        if (analysis.theme) raw.push(analysis.theme.toLowerCase());
-        if (analysis.colors) raw.push.apply(raw, analysis.colors.map(function (c) { return c.toLowerCase(); }));
-        if (baseMetadata.keywords) raw.push.apply(raw, baseMetadata.keywords);
 
-        var seen = {}, cleanKw = [], dupes = 0;
-        for (var i = 0; i < raw.length; i++) {
-            var kw = raw[i].trim().toLowerCase().replace(/^[,\.\-_:;]+|[,\.\-_:;]+$/g, '');
-            if (!kw || seen[kw]) { if (kw) dupes++; continue; }
-            if (settings.singleWordKeywords && kw.includes(' ')) {
-                kw.split(/\s+/).forEach(function (w) { if (w.length > 2 && !seen[w]) { seen[w] = true; cleanKw.push(w); } });
-            } else { seen[kw] = true; cleanKw.push(kw); }
-            if (cleanKw.length >= maxKw) break;
+        // AI-generated keywords are the canonical source
+        var aiKeywords = (baseMetadata && baseMetadata.keywords) ? baseMetadata.keywords.slice() : [];
+
+        // Only supplement if AI gave critically few keywords
+        if (aiKeywords.length < 8) {
+            var supplementary = [];
+            if (analysis && analysis.main_subject) {
+                analysis.main_subject.toLowerCase().split(/\s+/).forEach(function (w) { if (w.length > 2) supplementary.push(w); });
+            }
+            if (analysis && analysis.objects) {
+                analysis.objects.forEach(function (o) { supplementary.push(o.toLowerCase()); });
+            }
+            if (analysis && analysis.style) supplementary.push(analysis.style.toLowerCase());
+            if (analysis && analysis.content_type) supplementary.push(analysis.content_type.toLowerCase());
+            if (analysis && analysis.theme) supplementary.push(analysis.theme.toLowerCase());
+
+            // Add supplementary only if not already present
+            var existingLower = aiKeywords.map(function (k) { return k.toLowerCase(); });
+            supplementary.forEach(function (s) {
+                var sl = s.trim().toLowerCase().replace(/^[,\.\-_:;]+|[,\.\-_:;]+$/g, '');
+                if (sl && sl.length > 2 && existingLower.indexOf(sl) === -1) {
+                    aiKeywords.push(sl);
+                    existingLower.push(sl);
+                }
+            });
         }
 
-        var title = (baseMetadata.title || '').trim();
-        var desc = (baseMetadata.description || '').trim();
+        // Truncate to platform max (preserve AI ordering)
+        var finalKw = aiKeywords.slice(0, maxKw);
+
+        // Title and description from AI (already validated by backend)
+        var title = (baseMetadata && baseMetadata.title) ? baseMetadata.title.trim() : '';
+        var desc = (baseMetadata && baseMetadata.description) ? baseMetadata.description.trim() : '';
+
+        // Quality scores
         var titleWords = title.split(/\s+/).filter(Boolean);
-        var kwRatio = Math.min(1, cleanKw.length / Math.min(49, settings.maxKeywords || 49));
+        var minTitle = settings.minTitleWords || 8;
+        var maxTitle = settings.maxTitleWords || 22;
+        var minDesc = settings.minDescriptionWords || 18;
+
+        var accuracy = Math.min(99, Math.max(60, 96 - (titleWords.length < minTitle ? 8 : titleWords.length > maxTitle ? 4 : 0) - (finalKw.length < 15 ? 6 : 0)));
+        var relevance = Math.min(99, Math.max(60, 94 + (titleWords.length >= minTitle && titleWords.length <= maxTitle ? 2 : -4) + (desc.split(/\s+/).length >= minDesc ? 2 : -3)));
+        var kwRatio = Math.min(1, finalKw.length / Math.min(49, settings.maxKeywords || 49));
         var seo = Math.round(75 + kwRatio * 23);
-        if (cleanKw.length >= 40) seo = Math.min(99, seo + 2);
+        if (finalKw.length >= 40) seo = Math.min(99, seo + 2);
+        seo = Math.max(60, Math.min(99, seo));
 
         return {
-            title: title, description: desc, keywords: cleanKw,
-            primaryCategory: baseMetadata.category || 'Graphic Resources',
-            secondaryCategory: baseMetadata.secondary_category || 'Illustration',
-            qualityScore: { accuracy: Math.min(99, 96 - (titleWords.length < (settings.minTitleWords || 8) ? 4 : 0)), relevance: Math.min(99, 94 + (titleWords.length >= (settings.minTitleWords || 8) ? 2 : -4)), seoPotential: Math.max(60, Math.min(99, seo)) },
-            validation: { duplicatesRemoved: dupes, keywordCount: cleanKw.length },
+            title: title,
+            description: desc,
+            keywords: finalKw,
+            primaryCategory: (baseMetadata && baseMetadata.category) || 'Graphic Resources',
+            secondaryCategory: (baseMetadata && baseMetadata.secondary_category) || 'Illustration',
+            qualityScore: { accuracy: accuracy, relevance: relevance, seoPotential: seo },
+            validation: { keywordCount: finalKw.length, titleWordCount: titleWords.length },
         };
     }
 
