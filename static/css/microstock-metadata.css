@@ -288,36 +288,67 @@
 /* Upload zone */
 .mm-upload-zone {
     border: 2px dashed var(--mm-border);
-    border-radius: 12px;
-    padding: 3rem 2rem;
+    border-radius: 16px;
+    padding: 4rem 2rem;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     background: var(--mm-surface);
+    position: relative;
+    overflow: hidden;
+}
+
+.mm-upload-zone::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(135deg, var(--mm-accent), transparent 40%, transparent 60%, var(--mm-accent));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mm-upload-zone:hover::before,
+.mm-upload-zone.dragover::before {
+    opacity: 0.5;
 }
 
 .mm-upload-zone:hover,
 .mm-upload-zone.dragover {
     border-color: var(--mm-accent);
     background: color-mix(in srgb, var(--mm-accent) 4%, var(--mm-surface));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--mm-accent) 12%, transparent);
 }
 
 .mm-upload-zone svg {
-    width: 40px;
-    height: 40px;
-    stroke: var(--mm-muted);
-    margin-bottom: 0.75rem;
+    width: 56px;
+    height: 56px;
+    stroke: var(--mm-accent);
+    margin-bottom: 1rem;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.mm-upload-zone:hover svg {
+    opacity: 1;
+    transform: translateY(-4px);
 }
 
 .mm-upload-zone h3 {
     margin: 0 0 0.4rem;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
 }
 
 .mm-upload-zone p {
     margin: 0;
     color: var(--mm-muted);
-    font-size: 0.85rem;
+    font-size: 0.88rem;
 }
 
 .mm-upload-formats {
@@ -909,4 +940,13 @@
     .mm-detail {
         grid-template-columns: 1fr;
     }
+}
+
+@keyframes mm-pulse-border {
+    0%, 100% { border-color: var(--mm-border); }
+    50% { border-color: color-mix(in srgb, var(--mm-accent) 40%, var(--mm-border)); }
+}
+
+.mm-upload-zone:not(:hover):not(.dragover) {
+    animation: mm-pulse-border 3s ease-in-out infinite;
 }
