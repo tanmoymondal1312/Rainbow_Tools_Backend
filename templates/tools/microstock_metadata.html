@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/tool.css' %}?v=20260827">
-<link rel="stylesheet" href="{% static 'css/microstock-metadata.css' %}?v=20260827c">
+<link rel="stylesheet" href="{% static 'css/microstock-metadata.css' %}?v=20260827d">
 <style>:root { --tool-accent: {{ tool.color }}; }</style>
 {% endblock %}
 
@@ -42,24 +42,39 @@
         <div class="mm-sidebar-section" id="mm-toggles-section">
             <h3>Settings</h3>
             <div class="mm-toggle-row">
-                <label for="mm-single-kw">Single Word Keywords</label>
+                <div class="mm-toggle-info">
+                    <label for="mm-single-kw">Single Word Keywords</label>
+                    <span class="mm-toggle-hint">Keywords without spaces (e.g. "sunset" not "golden sunset")</span>
+                </div>
                 <input type="checkbox" class="mm-toggle" id="mm-single-kw" checked>
             </div>
             <div class="mm-toggle-row">
-                <label for="mm-silhouette">Silhouette</label>
+                <div class="mm-toggle-info">
+                    <label for="mm-silhouette">Silhouette</label>
+                    <span class="mm-toggle-hint">Marks artwork as silhouette style for stock platforms</span>
+                </div>
                 <input type="checkbox" class="mm-toggle" id="mm-silhouette">
             </div>
             <div class="mm-toggle-row">
-                <label for="mm-transparent">Transparent BG</label>
+                <div class="mm-toggle-info">
+                    <label for="mm-transparent">Transparent BG</label>
+                    <span class="mm-toggle-hint">Useful for clipart, icons, and isolated objects</span>
+                </div>
                 <input type="checkbox" class="mm-toggle" id="mm-transparent">
             </div>
             <div class="mm-toggle-row">
-                <label for="mm-custom-prompt">Custom Prompt</label>
+                <div class="mm-toggle-info">
+                    <label for="mm-custom-prompt">Custom Prompt</label>
+                    <span class="mm-toggle-hint">Add extra instructions to guide the AI</span>
+                </div>
                 <input type="checkbox" class="mm-toggle" id="mm-custom-prompt">
             </div>
             <textarea class="mm-textarea" id="mm-custom-prompt-text" placeholder="Additional instructions for AI..." hidden></textarea>
             <div class="mm-toggle-row">
-                <label for="mm-prohibited">Prohibited Words</label>
+                <div class="mm-toggle-info">
+                    <label for="mm-prohibited">Prohibited Words</label>
+                    <span class="mm-toggle-hint">Words to exclude from generated keywords</span>
+                </div>
                 <input type="checkbox" class="mm-toggle" id="mm-prohibited">
             </div>
             <textarea class="mm-textarea" id="mm-prohibited-text" placeholder="word1, word2, word3" hidden></textarea>
