@@ -5,12 +5,14 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/tool.css' %}?v=20260827">
-<link rel="stylesheet" href="{% static 'css/microstock-metadata.css' %}?v=20260827f">
+<link rel="stylesheet" href="{% static 'css/microstock-metadata.css' %}?v=20260827g">
 <style>:root { --tool-accent: {{ tool.color }}; }</style>
 {% endblock %}
 
 {% block content %}
 <div class="mm-layout" id="mm-app">
+    <!-- Sidebar overlay (mobile) -->
+    <div class="mm-sidebar-overlay" id="mm-sidebar-overlay"></div>
     <!-- Sidebar -->
     <aside class="mm-sidebar" id="mm-sidebar">
         <div class="mm-sidebar-brand">🏷️ MicrostockAI</div>

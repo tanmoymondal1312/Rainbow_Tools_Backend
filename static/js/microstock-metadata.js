@@ -366,7 +366,25 @@
         var sidebar = $('mm-sidebar');
         var sidebarToggle = $('mm-sidebar-toggle');
 
-        if (sidebarToggle) sidebarToggle.addEventListener('click', function () { sidebar.classList.toggle('open'); });
+        if (sidebarToggle) sidebarToggle.addEventListener('click', function () {
+            sidebar.classList.toggle('open');
+            var overlay = $('mm-sidebar-overlay');
+            if (overlay) {
+                if (sidebar.classList.contains('open')) {
+                    overlay.classList.add('visible');
+                } else {
+                    overlay.classList.remove('visible');
+                }
+            }
+        });
+
+        var sidebarOverlay = $('mm-sidebar-overlay');
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', function () {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('visible');
+            });
+        }
 
         dropzone.addEventListener('click', function () { fileInput.click(); });
         dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.classList.add('dragover'); });

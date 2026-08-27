@@ -980,6 +980,29 @@
     color: var(--mm-text);
     cursor: pointer;
     font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.mm-sidebar-toggle:hover {
+    border-color: var(--mm-accent);
+    color: var(--mm-accent);
+}
+
+/* Sidebar overlay (mobile) */
+.mm-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mm-sidebar-overlay.visible {
+    display: block;
+    opacity: 1;
 }
 
 /* Responsive */
@@ -995,16 +1018,21 @@
         max-height: 0;
         overflow: hidden;
         padding: 0 1.25rem;
-        transition: max-height 0.3s, padding 0.3s;
+        transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        z-index: 1000;
     }
 
     .mm-sidebar.open {
-        max-height: 600px;
+        max-height: 70vh;
         padding: 1.25rem;
+        overflow-y: auto;
     }
 
     .mm-sidebar-toggle {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
     }
 
     .mm-detail {
