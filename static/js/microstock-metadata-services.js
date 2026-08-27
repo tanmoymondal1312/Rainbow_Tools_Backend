@@ -223,7 +223,7 @@ window.MMQueue = (function () {
     return {
         startBatch: function (items, s, p, cbs) {
             cancel(); settings = s; platform = p; onProgress = cbs.onProgress; onItemUpdated = cbs.onItemUpdated; onBatchComplete = cbs.onBatchComplete;
-            var pending = items.filter(function (i) { return (i.status === 'idle' || i.status === 'error') && i.base64Data; });
+            var pending = items.filter(function (i) { return (i.status === 'idle' || i.status === 'error' || i.status === 'preview_ready') && i.base64Data; });
             if (pending.length === 0) { emitProgress(); if (onBatchComplete) onBatchComplete(); return; }
             queue = pending.slice(); totalCount = items.length;
             completedCount = items.filter(function (i) { return i.status === 'completed'; }).length;
