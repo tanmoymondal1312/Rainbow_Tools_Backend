@@ -5,7 +5,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = 'gemini-3.7-flash'
+GEMINI_MODELS = ['gemini-3.7-flash', 'gemini-2.5-flash', 'gemini-2.0-flash']
+GEMINI_MODEL = GEMINI_MODELS[0]
 BACKOFF_DELAYS = [2000, 5000, 10000]
 
 _visual_analysis_cache = {}
@@ -61,21 +62,32 @@ def classify_ai_error(err):
     }
 
 
-def generate_content_with_retry(client, request_payload, max_retries=3):
+def generate_content_with_retry(client, request_payload, max_retries=2):
+    models_to_try = list(GEMINI_MODELS)
     attempt = 0
     last_error = None
-    while attempt <= max_retries:
-        try:
-            return client.models.generate_content(**request_payload)
-        except Exception as err:
-            last_error = err
-            attempt += 1
-            if attempt > max_retries:
-                break
-            delay_ms = BACKOFF_DELAYS[attempt - 1] if attempt - 1 < len(BACKOFF_DELAYS) else 5000
-            logger.warning(f'[AI Vision] Request failed (attempt {attempt}/{max_retries}). Retrying in {delay_ms}ms... {err}')
-            time.sleep(delay_ms / 1000)
-    raise last_error or Exception('AI processing failed after retries.')
+
+    for model_idx, model_name in enumerate(models_to_try):
+        payload = {**request_payload, 'model': model_name}
+        attempt = 0
+        while attempt <= max_retries:
+            try:
+                logger.info(f'[AI Vision] Trying model: {model_name} (attempt {attempt + 1})')
+                return client.models.generate_content(**payload)
+            except Exception as err:
+                last_error = err
+                attempt += 1
+                message = str(err)
+                is_overloaded = any(kw in message for kw in ('503', 'UNAVAILABLE', 'overloaded', 'high demand'))
+                if is_overloaded and model_idx < len(models_to_try) - 1:
+                    logger.warning(f'[AI Vision] Model {model_name} overloaded, switching to next model...')
+                    break
+                if attempt > max_retries:
+                    break
+                delay_ms = BACKOFF_DELAYS[attempt - 1] if attempt - 1 < len(BACKOFF_DELAYS) else 5000
+                logger.warning(f'[AI Vision] Request failed (attempt {attempt}/{max_retries}). Retrying in {delay_ms}ms... {err}')
+                time.sleep(delay_ms / 1000)
+    raise last_error or Exception('AI processing failed after all retries and model fallbacks.')
 
 
 def get_cached_analysis(file_hash, image_data):
