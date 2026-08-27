@@ -839,7 +839,7 @@
 }
 
 .mm-progress-track {
-    height: 4px;
+    height: 6px;
     border-radius: 999px;
     background: var(--mm-border);
     overflow: hidden;
@@ -847,15 +847,49 @@
 
 .mm-progress-fill {
     height: 100%;
-    background: var(--mm-accent);
+    background: linear-gradient(
+        -45deg,
+        var(--mm-accent),
+        color-mix(in srgb, var(--mm-accent) 60%, #fff),
+        var(--mm-accent)
+    );
+    background-size: 200% 100%;
+    animation: mm-progress-shimmer 1.5s ease-in-out infinite;
     transition: width 0.25s;
+    border-radius: 999px;
+    position: relative;
+}
+
+.mm-progress-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,0.3),
+        transparent
+    );
+    background-size: 200% 100%;
+    animation: mm-progress-shine 2s ease-in-out infinite;
+}
+
+@keyframes mm-progress-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@keyframes mm-progress-shine {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .mm-progress-text {
     font-size: 0.75rem;
     color: var(--mm-muted);
-    margin-top: 0.3rem;
+    margin-top: 0.4rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    text-align: center;
 }
 
 /* Toast */
