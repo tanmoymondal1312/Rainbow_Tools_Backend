@@ -1,9 +1,9 @@
 window.MMConfig = {
-    GEMINI_MODEL: 'gemini-3.7-flash',
-    MAX_CONCURRENT: 2,
-    RETRY_DELAYS: [2000, 5000, 10000],
-    MAX_RETRY: 3,
-    INTER_REQUEST_DELAY: 600,
+    GEMINI_MODELS: ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.5-flash'],
+    MAX_CONCURRENT: 1,
+    RETRY_DELAYS: [2000, 4000],
+    MAX_RETRY: 2,
+    INTER_REQUEST_DELAY: 1000,
 };
 
 window.MMCache = (function () {
@@ -41,7 +41,7 @@ window.MMGeminiService = (function () {
         return { valid: true };
     }
 
-    async function analyzeArtwork(item, settings, platform, forceFresh, generationVersion) {
+    async function analyzeArtwork(item, settings, platform, forceFresh, generationVersion, model) {
         if (!item.base64Data) {
             var err = { userMessage: 'No artwork preview available.', errorCode: 'PREVIEW_MISSING', canRetry: false };
             return { success: false, item: Object.assign({}, item, { status: 'error', errorMessage: err.userMessage, apiError: err }), error: err };
@@ -80,6 +80,7 @@ window.MMGeminiService = (function () {
                         image: item.base64Data, mimeType: item.mimeType || 'image/png',
                         fileName: item.fileName, fileType: item.fileType,
                         platform: platform, settings: settings, fileHash: item.fileHash,
+                        model: model || '',
                     }),
                 });
                 lastStatus = res.status;
@@ -167,7 +168,7 @@ window.MMQueue = (function () {
     var queue = [], activeCount = 0, isPaused = false, isCancelled = false, isProcessing = false;
     var rateLimitWaiting = false, rateLimitTimer = null;
     var totalCount = 0, completedCount = 0, failedCount = 0;
-    var settings = {}, platform = 'adobe-stock';
+    var settings = {}, platform = 'adobe-stock', selectedModel = '';
     var onProgress, onItemUpdated, onBatchComplete;
     var generationVersionCounter = 0;
 
@@ -194,7 +195,7 @@ window.MMQueue = (function () {
         if (onItemUpdated) onItemUpdated(Object.assign({}, item, { status: 'analyzing', statusMessage: 'AI Vision Analysis...' }));
         emitProgress();
         try {
-            var result = await MMGeminiService.analyzeArtwork(item, settings, platform, false, myVersion);
+            var result = await MMGeminiService.analyzeArtwork(item, settings, platform, false, myVersion, selectedModel);
             if (isCancelled) { activeCount--; return; }
             // Version check: if a newer generation started, ignore this result
             if (result.item && result.item.generationVersion && result.item.generationVersion < myVersion) {
@@ -221,8 +222,9 @@ window.MMQueue = (function () {
     }
 
     return {
-        startBatch: function (items, s, p, cbs) {
+        startBatch: function (items, s, p, cbs, model) {
             cancel(); settings = s; platform = p; onProgress = cbs.onProgress; onItemUpdated = cbs.onItemUpdated; onBatchComplete = cbs.onBatchComplete;
+            selectedModel = model || '';
             var pending = items.filter(function (i) { return (i.status === 'idle' || i.status === 'error' || i.status === 'preview_ready') && i.base64Data; });
             if (pending.length === 0) { emitProgress(); if (onBatchComplete) onBatchComplete(); return; }
             queue = pending.slice(); totalCount = pending.length;

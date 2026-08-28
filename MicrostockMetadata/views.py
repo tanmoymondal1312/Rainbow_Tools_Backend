@@ -219,6 +219,7 @@ async def analyze_metadata(request):
     platform = body.get('platform', 'adobe-stock')
     settings = body.get('settings', {})
     file_hash = body.get('fileHash', '')
+    requested_model = body.get('model', '')
 
     cached, cache_key = get_cached_analysis(file_hash, image)
     if cached:
@@ -246,7 +247,7 @@ From your Stage 1 visual inventory ONLY, generate:
 CRITICAL: Do NOT invent objects, environments, brands, or concepts not visible in the image. Do NOT use the filename as evidence."""
 
     request_payload = {
-        'model': GEMINI_MODEL,
+        'model': requested_model or GEMINI_MODEL,
         'contents': {
             'parts': [
                 {'inline_data': {'mime_type': mime_type, 'data': image}},
@@ -371,3 +372,50 @@ async def render_eps(request):
             'canRetry': True,
             'details': str(e),
         }, status=422)
+
+
+@csrf_exempt
+def check_models(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    from .gemini_client import GEMINI_MODELS
+    import time
+
+    results = []
+    try:
+        client = get_gemini_client()
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+    for model_name in GEMINI_MODELS:
+        start = time.time()
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents='Reply with exactly: OK',
+            )
+            elapsed_ms = round((time.time() - start) * 1000)
+            results.append({
+                'id': model_name,
+                'name': model_name.replace('gemini-', 'Gemini ').title(),
+                'available': True,
+                'latency_ms': elapsed_ms,
+            })
+        except Exception as e:
+            elapsed_ms = round((time.time() - start) * 1000)
+            message = str(e)
+            status_code = 500
+            if '503' in message or 'UNAVAILABLE' in message or 'high demand' in message:
+                status_code = 503
+            elif '404' in message or 'NOT_FOUND' in message:
+                status_code = 404
+            results.append({
+                'id': model_name,
+                'name': model_name.replace('gemini-', 'Gemini ').title(),
+                'available': False,
+                'status': status_code,
+                'latency_ms': elapsed_ms,
+            })
+
+    return JsonResponse({'models': results})

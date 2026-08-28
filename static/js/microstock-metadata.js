@@ -6,6 +6,7 @@
         selectedItem: null,
         view: 'upload',
         settings: loadSettings(),
+        selectedModel: '',
     };
 
     var DEFAULT_SETTINGS = {
@@ -204,7 +205,7 @@
     async function generateSingle(item) {
         item.status = 'analyzing';
         updateView();
-        var result = await MMGeminiService.analyzeArtwork(item, state.settings, state.platform, false);
+        var result = await MMGeminiService.analyzeArtwork(item, state.settings, state.platform, false, null, state.selectedModel);
         // Update by ID, not by reference
         var target = _findItemById(result.item.id);
         if (target) {
@@ -265,7 +266,7 @@
                 MMUI.showToast('Batch Complete', 'All files processed', 'success');
                 updateView();
             },
-        });
+        }, state.selectedModel);
     }
 
     function bindDetailViewEvents() {
@@ -375,6 +376,53 @@
             state.items = []; state.selectedItem = null; state.view = 'upload';
             updateView();
         });
+    }
+
+    function checkAndRenderModels() {
+        var container = $('mm-model-selector');
+        if (!container) return;
+
+        fetch('/microstock-metadata/api/check-models/')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var models = data.models || [];
+                container.innerHTML = '';
+
+                models.forEach(function (m) {
+                    var div = document.createElement('div');
+                    div.className = 'mm-model-option' + (!m.available ? ' unavailable' : '') + (state.selectedModel === m.id ? ' selected' : '');
+
+                    var badgeClass = m.available ? (m.latency_ms > 5000 ? 'slow' : 'online') : 'offline';
+                    var badgeText = m.available ? (m.latency_ms > 5000 ? 'Slow' : 'Online') : 'Offline';
+                    var latencyText = m.available ? m.latency_ms + 'ms' : (m.status === 404 ? 'N/A' : 'Overloaded');
+
+                    div.innerHTML = '<div><span class="mm-model-name">' + m.name + '</span>' +
+                        '<span class="mm-model-latency">' + latencyText + '</span></div>' +
+                        '<span class="mm-model-badge ' + badgeClass + '">' + badgeText + '</span>';
+
+                    if (m.available) {
+                        div.addEventListener('click', function () {
+                            state.selectedModel = m.id;
+                            $('mm-selected-model').value = m.id;
+                            container.querySelectorAll('.mm-model-option').forEach(function (el) { el.classList.remove('selected'); });
+                            div.classList.add('selected');
+                        });
+                    }
+                    container.appendChild(div);
+                });
+
+                if (!state.selectedModel) {
+                    var firstAvailable = models.find(function (m) { return m.available; });
+                    if (firstAvailable) {
+                        state.selectedModel = firstAvailable.id;
+                        $('mm-selected-model').value = firstAvailable.id;
+                        container.querySelector('.mm-model-option:not(.unavailable)')?.classList.add('selected');
+                    }
+                }
+            })
+            .catch(function () {
+                container.innerHTML = '<div class="mm-model-loading">Could not check models</div>';
+            });
     }
 
     function init() {
@@ -503,6 +551,7 @@
 
         applySettingsToUI();
         updateView();
+        checkAndRenderModels();
     }
 
     function applySettingsToUI() {

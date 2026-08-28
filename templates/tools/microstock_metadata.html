@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/tool.css' %}?v=20260827">
-<link rel="stylesheet" href="{% static 'css/microstock-metadata.css' %}?v=20260827g">
+<link rel="stylesheet" href="{% static 'css/microstock-metadata.css' %}?v=20260828a">
 <style>:root { --tool-accent: {{ tool.color }}; }</style>
 {% endblock %}
 
@@ -26,7 +26,13 @@
         </div>
 
         <div class="mm-sidebar-section" id="mm-metadata-settings">
-            <h3>Metadata Customization</h3>
+            <h3>AI Model</h3>
+            <div class="mm-model-selector" id="mm-model-selector">
+                <div class="mm-model-loading">Checking models...</div>
+            </div>
+            <input type="hidden" id="mm-selected-model" value="">
+
+            <h3 style="margin-top:1rem">Metadata Customization</h3>
 
             <div class="mm-slider-row"><span>Title Words</span><span class="mm-slider-val" id="mm-title-val">8 – 22</span></div>
             <input type="range" class="mm-slider" id="mm-min-title" min="4" max="15" value="8">
@@ -172,7 +178,7 @@
 
 {% block extra_js %}
 <script src="{% static 'js/tool-common.js' %}?v=20260827"></script>
-<script src="{% static 'js/microstock-metadata-services.js' %}?v=20260827"></script>
-<script src="{% static 'js/microstock-metadata-ui.js' %}?v=20260827"></script>
-<script src="{% static 'js/microstock-metadata.js' %}?v=20260827b"></script>
+<script src="{% static 'js/microstock-metadata-services.js' %}?v=20260828a"></script>
+<script src="{% static 'js/microstock-metadata-ui.js' %}?v=20260828a"></script>
+<script src="{% static 'js/microstock-metadata.js' %}?v=20260828a"></script>
 {% endblock %}
